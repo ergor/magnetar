@@ -1,0 +1,7 @@
+[package]
+name = "magnetar-client"
+version = "0.1.0"
+authors = ["zzz"]
+edition = "2018"
+
+[dependencies]
