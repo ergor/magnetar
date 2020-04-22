@@ -1,7 +1,17 @@
 [package]
-name = "magnetar-client"
+name = "magnetar"
 version = "0.1.0"
-authors = ["zzz"]
+authors = ["Erol Gorancic"]
 edition = "2018"
 
 [dependencies]
+
+# command line argument parsing
+[dependencies.clap]
+version = "2.33.0"
+default-features = false
+
+# SQLite for rust
+[dependencies.rusqlite]
+version = "0.22.0"
+features = ["bundled"] # use bundled SQLite bindings for libsqlite3-sys
