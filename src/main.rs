@@ -1,4 +1,5 @@
 mod create_tables;
+mod fs_indexer;
 
 use clap::{App, Arg, AppSettings};
 use rusqlite::{Connection, params};
@@ -28,8 +29,9 @@ fn main() -> rusqlite::Result<()> {
 
     // TODO: check that no dir is subdir of other
 
-    let time_now = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH);
-    let time_now = time_now.expect("somehow, time now is before start of UNIX epoch");
+    let time_now = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .expect("somehow, time now is before start of UNIX epoch");
 
     let db_filename = format!("{}-{}.db", MAGNETAR_NAME, time_now.as_secs());
 
@@ -39,10 +41,13 @@ fn main() -> rusqlite::Result<()> {
 
     let conn = Connection::open(tmp_dir_path)?;
     create_tables::execute(&conn);
-    conn.execute(
-        "insert into host (display_name, fqdn, id) values (?, ?, ?)",
-        params!["host", "host.domain.tld", 1]
-    ).ok();
+
+    for dir in directories {
+        if let Some(msg) = fs_indexer::index(&conn, dir).err() {
+            eprintln!("{}: {}: could not index directory.", MAGNETAR_NAME, dir);
+        }
+    }
+
     conn.close().ok();
 
     return Ok(());
