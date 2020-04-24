@@ -2,6 +2,7 @@ use rusqlite::Connection;
 use std::io;
 use std::fs;
 use std::io::{Error, Read};
+use crate::consts;
 
 const READ_BUF_SZ: usize = 128 * 1024;
 
@@ -37,7 +38,7 @@ fn unwrap_dir_entry(entry: io::Result<fs::DirEntry>) -> io::Result<Option<fs::Di
     } else if file_type.is_symlink() {
         return Ok(None); // TODO: how to handle symlinks?
     } else {
-        panic!("magnetar: illegal filetype. expected a file, dir or symlink");
+        panic!("{}: illegal filetype. expected a file, dir or symlink", consts::PROGRAM_NAME);
     }
 }
 
