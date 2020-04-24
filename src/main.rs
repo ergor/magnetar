@@ -1,16 +1,19 @@
 mod consts;
 mod create_tables;
+mod error;
 mod fs_indexer;
 mod index_once;
 mod listener;
 
 use clap::{App, Arg, AppSettings};
-use rusqlite::{Connection, params};
 use std::env;
+use std::result;
 use std::time::{SystemTime};
 
 
-fn main() -> rusqlite::Result<()> {
+pub type Result<T, E = crate::error::Error> = result::Result<T, E>;
+
+fn main() -> crate::Result<()> {
     let args = App::new(consts::PROGRAM_NAME)
         .setting(AppSettings::TrailingVarArg)
         .version(clap::crate_version!())
@@ -39,7 +42,7 @@ fn main() -> rusqlite::Result<()> {
     let directories = args.values_of("directories").unwrap();
 
     if args.is_present("daemonize") {
-        panic!("daemonize not implemented");
+        unimplemented!()
     }
 
     let time_now = SystemTime::now()
@@ -56,7 +59,7 @@ fn main() -> rusqlite::Result<()> {
     if args.is_present("listen") {
         listener::start();
     } else {
-        index_once::start(db_path, directories, args.is_present("force"));
+        index_once::start(db_path, directories, args.is_present("force"))?;
     }
 
     return Ok(());
