@@ -1,8 +1,8 @@
+use crate::consts;
 use rusqlite::Connection;
-use std::io;
 use std::fs;
 use std::io::{Error, Read};
-use crate::consts;
+use std::io;
 
 const READ_BUF_SZ: usize = 128 * 1024;
 
