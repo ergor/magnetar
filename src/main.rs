@@ -4,6 +4,7 @@ mod error;
 mod fs_indexer;
 mod index_once;
 mod listener;
+mod db_models;
 
 use clap::{App, Arg, AppSettings};
 use std::env;

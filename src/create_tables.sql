@@ -48,22 +48,19 @@ CREATE TABLE IF NOT EXISTS "host" (
 	PRIMARY KEY("id")
 );
 CREATE TABLE IF NOT EXISTS "fs_node" (
-	"id"	bigint NOT NULL,
-	"creation_date"	datetime,
-	"gid"	integer NOT NULL,
-	"links_to"	TEXT,
-	"modified_date"	datetime,
-	"name"	TEXT,
+	"id"	INTEGER PRIMARY KEY AUTOINCREMENT,
 	"node_type"	integer,
-	"path"	TEXT,
-	"permissions"	integer NOT NULL,
-	"sha1checksum"	varchar(40),
+	"name"	TEXT,
 	"size"	bigint NOT NULL,
 	"uid"	integer NOT NULL,
-	"host_id"	bigint,
-	"indexing_run_id"	bigint,
-	"parent_id"	bigint,
-	PRIMARY KEY("id")
+	"gid"	integer NOT NULL,
+	"permissions"	integer NOT NULL,
+	"creation_date"	datetime,
+	"modified_date"	datetime,
+	"path"	TEXT,
+	"links_to"	TEXT,
+	"sha1checksum"	varchar(40),
+	"parent_id"	bigint
 );
 
 COMMIT;
