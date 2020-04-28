@@ -35,10 +35,12 @@ pub fn index(conn: &Connection, dir_path: &str) -> io::Result<Vec<FsNode>> {
 fn process_dir_entry(entry: io::Result<fs::DirEntry>, read_buf: &mut [u8]) -> crate::Result<FsNode> {
     let entry = entry?;
 
+    if entry.path().is_relative() {
+        panic!("TODO: convert relative paths to absolute paths");
+    }
+
     let file_type = entry.file_type()?;
     let metadata = entry.metadata()?;
-    let mut path = entry.path();
-    path.pop(); // get parent dir
 
     let mut fs_node = FsNode::new();
 
@@ -73,10 +75,10 @@ fn process_dir_entry(entry: io::Result<fs::DirEntry>, read_buf: &mut [u8]) -> cr
         Err(_) => 0,
     };
 
-    match path.to_str() { // TODO: rewrite using the ?-operator when the Try trait becomes stable
-        Some(path_str) => fs_node.path = String::from(path_str),
-        None => return Err(error::Error::NoneError),
-    };
+    fs_node.parent_path = entry.path().parent().map_or_else(
+        || String::new(),
+        |p| String::from(p.to_str().unwrap_or(""))
+    );
 
     if let NodeType::Symlink = fs_node.node_type {
         match fs::read_link(entry.path())?.to_str() { // TODO: rewrite using the ?-operator when the Try trait becomes stable

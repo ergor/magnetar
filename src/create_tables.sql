@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS "fs_node" (
 	"permissions"	integer NOT NULL,
 	"creation_date"	datetime,
 	"modified_date"	datetime,
-	"path"	TEXT,
+	"parent_path"	TEXT,
 	"sha1_checksum"	varchar(40),
 	"links_to"	TEXT,
 	"inode" INTEGER ,

@@ -1,9 +1,12 @@
+use std::fs;
 
 // TODO: why isnt u64 implemented for ToSql?
 #[derive(Default, Debug)]
 pub struct FsNode {
     pub id: i64,
     pub node_type: NodeType,
+    pub sha1_checksum: String, // 40 chars
+    pub parent_path: String,
     pub name: String,
     pub size: i64,
     pub uid: u32,
@@ -11,12 +14,10 @@ pub struct FsNode {
     pub permissions: u32,
     pub creation_date: i64,
     pub modified_date: i64,
-    pub path: String,
-    pub sha1_checksum: String, // 40 chars
     pub links_to: String, // for soft links (symlinks)
     pub inode: i64,
     pub nlinks: i64, // number of hard links to this inode
-    pub parent_id: i64, // fk: FsNode::id
+    //pub parent_id: i64, // fk: FsNode::id
 }
 
 #[derive(Debug)]
@@ -54,6 +55,8 @@ impl FsNode {
         conn.execute(
             "INSERT INTO fs_node ( \
                     node_type, \
+                    sha1_checksum, \
+                    parent_path, \
                     name, \
                     size, \
                     uid, \
@@ -61,15 +64,14 @@ impl FsNode {
                     permissions, \
                     creation_date, \
                     modified_date, \
-                    path, \
-                    sha1_checksum, \
                     links_to, \
                     inode, \
-                    nlinks, \
-                    parent_id) \
-                    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
+                    nlinks) \
+                    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
             rusqlite::params![
                 self.node_type.value(),
+                self.sha1_checksum,
+                self.parent_path,
                 self.name,
                 self.size,
                 self.uid,
@@ -77,16 +79,43 @@ impl FsNode {
                 self.permissions,
                 self.creation_date,
                 self.modified_date,
-                self.path,
-                self.sha1_checksum,
                 self.links_to,
                 self.inode,
-                self.nlinks,
-                self.parent_id
+                self.nlinks
             ]
         )?;
         Ok(())
     }
+
+    // pub fn getOrNew(conn: rusqlite::Connection, node: fs::DirEntry) -> crate::Result<FsNode> {
+    //     let mut full_path = node.path();
+    //     assert!(full_path.is_absolute());
+    //
+    //     let path = full_path.parent()
+    //         .map_or(Some(""), |p| p.to_str());
+    //     let path = match path {
+    //         Some(s) => s,
+    //         None => return Err(crate::error::Error::NoneError),
+    //     };
+    //
+    //     let name = node.file_name();
+    //     let name = match name.to_str() {
+    //         Some(s) => s,
+    //         None => return Err(crate::error::Error::NoneError),
+    //     };
+    //
+    //     let mut cols_vect = Vec::new();
+    //     let mut stmt = conn.prepare("SELECT * FROM fs_node WHERE name = ? AND path = ?")?;
+    //     let mut rows = stmt.query(&[name, path])?;
+    //
+    //     while let Some(row) = rows.next()? {
+    //         cols_vect.push(rows.columns());
+    //     }
+    //
+    //     assert_eq!(1, cols_vect.len());
+    //
+    //     Ok(FsNode::new())
+    // }
 }
 
 
