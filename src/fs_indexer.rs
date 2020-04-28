@@ -10,6 +10,8 @@ use std::time::SystemTime;
 
 const READ_BUF_SZ: usize = 1024 * 1024;
 
+/// Assumes you won't run this function twice on the same path.
+/// I.e., you must ensure the paths you put in here are NOT subdirs of eachother.
 pub fn index(conn: &Connection, dir_path: &str) -> io::Result<Vec<FsNode>> {
     let mut fs_nodes = Vec::new();
     let mut read_buf = [0 as u8; READ_BUF_SZ];
@@ -19,7 +21,6 @@ pub fn index(conn: &Connection, dir_path: &str) -> io::Result<Vec<FsNode>> {
     for node in nodes {
         match process_dir_entry(node, &mut read_buf) {
             Ok(fs_node) => {
-                println!("{:?}", fs_node);
                 fs_nodes.push(fs_node);
             }
             Err(e) => {
@@ -41,12 +42,19 @@ fn process_dir_entry(entry: io::Result<fs::DirEntry>, read_buf: &mut [u8]) -> cr
 
     let mut fs_node = FsNode::new();
 
+    fs_node.node_type =
+        if file_type.is_dir() {
+            NodeType::Directory
+        } else if file_type.is_file() {
+            NodeType::File
+        } else if file_type.is_symlink() {
+            NodeType::Symlink
+        } else {
+            NodeType::Other
+        };
+
     match entry.file_name().to_str() { // TODO: rewrite using the ?-operator when the Try trait becomes stable
         Some(file_name) => fs_node.name = String::from(file_name),
-        None => return Err(error::Error::NoneError),
-    };
-    match path.to_str() { // TODO: rewrite using the ?-operator when the Try trait becomes stable
-        Some(path_str) => fs_node.path = String::from(path_str),
         None => return Err(error::Error::NoneError),
     };
 
@@ -54,31 +62,41 @@ fn process_dir_entry(entry: io::Result<fs::DirEntry>, read_buf: &mut [u8]) -> cr
     fs_node.uid = metadata.st_uid();
     fs_node.gid = metadata.st_gid();
     fs_node.permissions = metadata.st_mode();
+
     fs_node.creation_date = match metadata.created() {
         Ok(systime) => systime.duration_since(SystemTime::UNIX_EPOCH)?.as_secs() as i64,
         Err(_) => 0,
     };
+
     fs_node.modified_date = match metadata.modified() {
         Ok(systime) => systime.duration_since(SystemTime::UNIX_EPOCH)?.as_secs() as i64,
         Err(_) => 0,
     };
 
+    match path.to_str() { // TODO: rewrite using the ?-operator when the Try trait becomes stable
+        Some(path_str) => fs_node.path = String::from(path_str),
+        None => return Err(error::Error::NoneError),
+    };
 
-    if file_type.is_dir() {
-        fs_node.node_type = NodeType::Directory;
-        return Ok(fs_node);
-    }
-    else if file_type.is_file() {
-        fs_node.node_type = NodeType::File;
-        fs_node.sha1_checksum = checksum(read_buf, &entry)?;
-        return Ok(fs_node);
-    }
-    else if file_type.is_symlink() {
-        fs_node.node_type = NodeType::Symlink;
-        return Ok(fs_node); // TODO: how to handle symlinks?
+    if let NodeType::Symlink = fs_node.node_type {
+        match fs::read_link(entry.path())?.to_str() { // TODO: rewrite using the ?-operator when the Try trait becomes stable
+            Some(path_str) => fs_node.links_to = String::from(path_str),
+            None => return Err(error::Error::NoneError),
+        }
     }
 
-    unreachable!("{}: illegal filetype. expected a file, dir or symlink", consts::PROGRAM_NAME);
+    fs_node.sha1_checksum =
+        if let NodeType::File = fs_node.node_type {
+            String::from(checksum(read_buf, &entry)?)
+        } else {
+            String::new()
+        };
+
+    fs_node.inode = metadata.st_ino() as i64;
+    fs_node.nlinks = metadata.st_nlink() as i64;
+    // TODO: parent id
+
+    Ok(fs_node)
 }
 
 fn checksum(read_buf: &mut [u8], file_entry: &fs::DirEntry) -> io::Result<String> {

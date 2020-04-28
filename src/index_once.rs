@@ -13,6 +13,7 @@ pub fn start(db_path: &str, directories: clap::Values, force: bool) -> crate::Re
         match fs_indexer::index(&conn, dir) {
             Ok(fs_nodes) => {
                 for fs_node in fs_nodes {
+                    println!("{:?}", fs_node);
                     if let Err(e) = fs_node.insert(&conn) {
                         eprintln!("could not insert fsnode entry into db: {}", e);
                     }

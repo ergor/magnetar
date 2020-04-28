@@ -1,4 +1,5 @@
 
+// TODO: why isnt u64 implemented for ToSql?
 #[derive(Default, Debug)]
 pub struct FsNode {
     pub id: i64,
@@ -11,8 +12,10 @@ pub struct FsNode {
     pub creation_date: i64,
     pub modified_date: i64,
     pub path: String,
-    pub links_to: String,
     pub sha1_checksum: String, // 40 chars
+    pub links_to: String, // for soft links (symlinks)
+    pub inode: i64,
+    pub nlinks: i64, // number of hard links to this inode
     pub parent_id: i64, // fk: FsNode::id
 }
 
@@ -59,10 +62,12 @@ impl FsNode {
                     creation_date, \
                     modified_date, \
                     path, \
+                    sha1_checksum, \
                     links_to, \
-                    sha1checksum, \
+                    inode, \
+                    nlinks, \
                     parent_id) \
-                    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
+                    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
             rusqlite::params![
                 self.node_type.value(),
                 self.name,
@@ -73,8 +78,10 @@ impl FsNode {
                 self.creation_date,
                 self.modified_date,
                 self.path,
-                self.links_to,
                 self.sha1_checksum,
+                self.links_to,
+                self.inode,
+                self.nlinks,
                 self.parent_id
             ]
         )?;

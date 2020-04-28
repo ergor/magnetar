@@ -10,6 +10,7 @@ use clap::{App, Arg, AppSettings};
 use std::env;
 use std::result;
 use std::time::{SystemTime};
+use std::process::exit;
 
 
 pub type Result<T, E = crate::error::Error> = result::Result<T, E>;
@@ -39,8 +40,18 @@ fn main() -> crate::Result<()> {
             .multiple(true))
         .get_matches();
 
-    // TODO: check that no dir is subdir of other
     let directories = args.values_of("directories").unwrap();
+    for dir in directories.clone() { // TODO: naive subdir check. doesn't guard against links
+        for other_dir in directories.clone() {
+            if dir == other_dir {
+                continue;
+            }
+            if dir.starts_with(other_dir) {
+                eprintln!("{} is subdirectory of {}. abort.", dir, other_dir);
+                exit(consts::EXIT_INVALID_ARGS);
+            }
+        }
+    }
 
     if args.is_present("daemonize") {
         unimplemented!()

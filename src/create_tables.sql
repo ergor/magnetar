@@ -58,8 +58,10 @@ CREATE TABLE IF NOT EXISTS "fs_node" (
 	"creation_date"	datetime,
 	"modified_date"	datetime,
 	"path"	TEXT,
+	"sha1_checksum"	varchar(40),
 	"links_to"	TEXT,
-	"sha1checksum"	varchar(40),
+	"inode" INTEGER ,
+	"nlinks" INTEGER ,
 	"parent_id"	bigint
 );
 
