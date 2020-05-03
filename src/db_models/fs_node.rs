@@ -110,7 +110,7 @@ impl FsNode {
         Ok(())
     }
 
-    pub fn map_from_row(row: &rusqlite::Row) -> rusqlite::Result<FsNode> {
+    pub fn map_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<FsNode> {
         let c = row.column_count();
         Ok(FsNode {
             id: row.get(0)?,

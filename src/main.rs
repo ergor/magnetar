@@ -1,3 +1,5 @@
+#![warn(missing_debug_implementations, rust_2018_idioms, missing_docs)]
+
 mod consts;
 mod create_tables;
 mod error;
@@ -7,12 +9,8 @@ mod db_models;
 
 use clap::{App, Arg, AppSettings};
 use indexer::fs_indexer;
-use indexer::index_once;
-use indexer::listener;
 use std::env;
-use std::process::exit;
 use std::result;
-use std::time::{SystemTime};
 
 
 pub type Result<T, E = crate::error::Error> = result::Result<T, E>;

@@ -1,6 +1,5 @@
 
 use std::{io, time};
-use std::option;
 
 #[derive(Debug)]
 pub enum Error {

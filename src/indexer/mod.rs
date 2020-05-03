@@ -8,7 +8,7 @@ use std::env;
 use std::process::exit;
 use std::time::SystemTime;
 
-pub fn run(args: &ArgMatches) -> crate::Result<()> {
+pub fn run(args: &ArgMatches<'_>) -> crate::Result<()> {
     let directories = args.values_of("directories").unwrap();
 
     // disallow indexing of subdirectories
@@ -54,8 +54,7 @@ pub fn run(args: &ArgMatches) -> crate::Result<()> {
 
         #[cfg(target_family = "windows")]
         {
-            eprintln!("{}: indexing not supported on windows yet. pull requests welcomed.", consts::PROGRAM_NAME);
-            exit(consts::EXIT_INVALID_ARGS);
+            unimplemented!("{}: indexing not supported on windows yet. pull requests welcomed :)", consts::PROGRAM_NAME);
         }
     }
 

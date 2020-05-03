@@ -5,7 +5,7 @@ use clap::ArgMatches;
 use crate::db_models::fs_node::FsNode;
 use std::path::Path;
 
-pub fn run(args: &ArgMatches) -> crate::Result<()> {
+pub fn run(args: &ArgMatches<'_>) -> crate::Result<()> {
     let first_index = Path::new(args.value_of("first-index").unwrap());
     let second_index = Path::new(args.value_of("second-index").unwrap());
 

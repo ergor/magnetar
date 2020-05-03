@@ -1,7 +1,5 @@
-use crate::consts;
 use crate::db_models::fs_node::{FsNode, NodeType};
 use crate::error;
-use rusqlite::Connection;
 use std::fs;
 use std::io::{Read};
 use std::io;
