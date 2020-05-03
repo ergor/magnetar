@@ -10,6 +10,8 @@ use std::time::SystemTime;
 
 pub fn run(args: &ArgMatches) -> crate::Result<()> {
     let directories = args.values_of("directories").unwrap();
+
+    // disallow indexing of subdirectories
     for dir in directories.clone() { // TODO: naive subdir check. doesn't guard against links
         for other_dir in directories.clone() {
             if dir == other_dir {
@@ -38,9 +40,23 @@ pub fn run(args: &ArgMatches) -> crate::Result<()> {
         .expect("could not create temporary database (illegal filename)");
 
     if args.is_present("listen") {
+        #[cfg(target_os = "linux")]
         listener::start();
+
+        #[cfg(not(target_os = "linux"))]
+        {
+            eprintln!("{}: listening mode is only supported on linux (inotify)", consts::PROGRAM_NAME);
+            exit(consts::EXIT_INVALID_ARGS);
+        }
     } else {
+        #[cfg(target_family = "unix")]
         index_once::start(db_path, directories, args.is_present("force"))?;
+
+        #[cfg(target_family = "windows")]
+        {
+            eprintln!("{}: indexing not supported on windows yet. pull requests welcomed.", consts::PROGRAM_NAME);
+            exit(consts::EXIT_INVALID_ARGS);
+        }
     }
 
     Ok(())

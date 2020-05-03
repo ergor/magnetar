@@ -12,7 +12,7 @@ const READ_BUF_SZ: usize = 1024 * 1024;
 
 /// Assumes you won't run this function twice on the same path.
 /// I.e., you must ensure the paths you put in here are NOT subdirs of eachother.
-pub fn index(conn: &Connection, dir_path: &str) -> io::Result<Vec<FsNode>> {
+pub fn index(dir_path: &str) -> io::Result<Vec<FsNode>> {
     let mut fs_nodes = Vec::new();
     let mut read_buf = [0 as u8; READ_BUF_SZ];
 

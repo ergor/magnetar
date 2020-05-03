@@ -92,10 +92,10 @@ fn main() -> crate::Result<()> {
         .get_matches();
 
     if let Some(args) = args.subcommand_matches("index") {
-        indexer::run(args);
+        indexer::run(args)?;
     }
     else if let Some(args) = args.subcommand_matches("compare") {
-        comparator::run(args);
+        comparator::run(args)?;
     }
 
     return Ok(());
