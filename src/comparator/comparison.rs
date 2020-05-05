@@ -24,9 +24,10 @@ impl ChangeType {
 }
 
 impl<'a> Comparison<'a> {
-    pub fn new(a: Option<&'a FsNode>, b: Option<&'a FsNode>) -> Comparison<'a> {
+    pub fn new() -> Comparison<'a> {
         Comparison {
-            a,b
+            a: None,
+            b: None
         }
     }
 
@@ -52,7 +53,15 @@ impl<'a> Comparison<'a> {
         self.a.map_or(String::new(), |node| node.name.clone())
     }
 
+    pub fn set_a(&mut self, fs_node: &'a FsNode) {
+        self.a = Some(fs_node);
+    }
+
     pub fn b(&self) -> String {
         self.b.map_or(String::new(), |node| node.name.clone())
+    }
+
+    pub fn set_b(&mut self, fs_node: &'a FsNode) {
+        self.b = Some(fs_node);
     }
 }

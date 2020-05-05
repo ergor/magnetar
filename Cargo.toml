@@ -5,7 +5,11 @@ authors = ["Erol Gorancic"]
 edition = "2018"
 
 [dependencies]
+# sha1 digest
 sha1 = "0.6.0"
+
+# for creating tree structures in memory (e.g. filesystem structure)
+indextree = "4.0.0"
 
 # command line argument parsing
 [dependencies.clap]
