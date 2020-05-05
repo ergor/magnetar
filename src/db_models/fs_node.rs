@@ -110,6 +110,32 @@ impl FsNode {
         Ok(())
     }
 
+    pub fn select(conn: &rusqlite::Connection) -> rusqlite::Result<Vec<FsNode>> {
+        let mut fs_nodes = Vec::new();
+        let mut stmt = conn.prepare("SELECT \
+                    id, \
+                    node_type, \
+                    sha1_checksum, \
+                    parent_path, \
+                    name, \
+                    size, \
+                    uid, \
+                    gid, \
+                    permissions, \
+                    creation_date, \
+                    modified_date, \
+                    links_to, \
+                    inode, \
+                    nlinks \
+                    FROM fs_node")?;
+        let row_iterator = stmt.query_map(rusqlite::NO_PARAMS, |row| FsNode::map_from_row(row))?;
+        for fs_node in row_iterator {
+            let fs_node = fs_node?;
+            fs_nodes.push(fs_node);
+        }
+        Ok(fs_nodes)
+    }
+
     pub fn map_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<FsNode> {
         let c = row.column_count();
         Ok(FsNode {
