@@ -1,7 +1,10 @@
 use crate::comparator::comparison::Comparison;
 use crate::comparator::comparison;
 use crate::db_models::fs_node::{FsNode, NodeType};
-use std::collections::{HashMap, BTreeMap};
+use std::collections::{HashMap, BTreeMap, BTreeSet};
+use std::fs::read;
+use std::iter::FromIterator;
+use std::path::{Path, PathBuf};
 
 const LI_FILE: &str = r#"<li>
                              <table>
@@ -22,23 +25,81 @@ const LI_DIR: &str = r#"<li class="collapse">
                             </ul>
                         </li>"#;
 
-pub fn compare(a: Vec<FsNode>, b: Vec<FsNode>) {
+struct NodeWrapper<'fsnode> {
+    full_path: String,
+    fs_node: &'fsnode FsNode
+}
+
+pub fn compare(a: Vec<FsNode>, b: Vec<FsNode>, roots_a: Vec<String>, roots_b: Vec<String>) {
     let html = include_str!("report.html");
     let generated = html.replace("${tree-nodes}", "");
 
+    let relevant_a = filter_by_roots(a, roots_a);
+    let relevant_b = filter_by_roots(b, roots_b);
 
-    let mut tree: indextree::Arena<Comparison> = indextree::Arena::new();
+    let a_wrapped = wrap_fs_nodes(&relevant_a);
+    let b_wrapped = wrap_fs_nodes(&relevant_b);
 
-    // TODO: sort by parent_path before inserting here
-    let mut parents_a: BTreeMap<String, Vec<&FsNode>> = BTreeMap::new();
+    let a_map = hashmap(&a_wrapped);
+    let b_map = hashmap(&b_wrapped);
 
-    // TODO: sort by parent_path before inserting here
-    let mut parents_b: BTreeMap<String, Vec<&FsNode>> = BTreeMap::new();
+
+
+    // let mut tree: indextree::Arena<Comparison> = indextree::Arena::new();
+    //
+    // // TODO: sort by parent_path before inserting here
+    // let mut parents_a: BTreeMap<String, Vec<&FsNode>> = BTreeMap::new();
+    //
+    // // TODO: sort by parent_path before inserting here
+    // let mut parents_b: BTreeMap<String, Vec<&FsNode>> = BTreeMap::new();
 
     //populate(&mut tree, &a, true);
     //populate(&mut tree, &b, false);
 
     //println!("{}", generated);
+}
+
+fn wrap_fs_nodes<'a>(fs_nodes: &'a Vec<FsNode>) -> Vec<NodeWrapper<'a>> {
+    let mut wrapped_nodes = Vec::new();
+
+    for fs_node in fs_nodes {
+        let mut full_path = PathBuf::from(&fs_node.parent_path);
+        full_path.push(&fs_node.name);
+        wrapped_nodes.push(NodeWrapper {
+            full_path: String::from(full_path.to_str().unwrap()),
+            fs_node
+        });
+    }
+
+    return wrapped_nodes;
+}
+
+fn hashmap<'a>(wrapped_nodes: &'a Vec<NodeWrapper>) -> HashMap<String, &'a NodeWrapper<'a>> {
+    let mut map: HashMap<String, &'a NodeWrapper<'a>> = HashMap::new();
+
+    for wrapped_node in wrapped_nodes {
+        map.insert(wrapped_node.full_path.clone(), wrapped_node);
+    }
+
+    return map;
+}
+
+fn filter_by_roots(fs_nodes: Vec<FsNode>, roots: Vec<String>) -> Vec<FsNode> {
+    let roots = BTreeSet::from_iter(roots.iter().cloned());
+    let children_in_root: Vec<FsNode> = fs_nodes.into_iter()
+        .filter(|fs_node| is_child_of(fs_node, &roots))
+        .collect();
+
+    return children_in_root;
+}
+
+fn is_child_of(fs_node: &FsNode, parents: &BTreeSet<String>) -> bool {
+    for parent in parents {
+        if fs_node.parent_path.starts_with(parent) {
+            return true;
+        }
+    }
+    return false;
 }
 
 // fn populate<'a>(tree: &mut HashMap<String, Vec<Comparison<'a>>>, fs_nodes: &'a Vec<FsNode>, is_a: bool) {

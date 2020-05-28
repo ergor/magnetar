@@ -6,35 +6,46 @@ use crate::db_models::fs_node::FsNode;
 use std::path::Path;
 
 pub fn run(args: &ArgMatches<'_>) -> crate::Result<()> {
-    let first_index = Path::new(args.value_of("first-index").unwrap());
-    let second_index = Path::new(args.value_of("second-index").unwrap());
-
-    if !first_index.exists() {
-        eprintln!("{}: database '{}' not found.", crate::consts::PROGRAM_NAME, first_index.to_str().unwrap());
-        return Err(crate::error::Error::Filesystem)
-    }
-    if !second_index.exists() {
-        eprintln!("{}: database '{}' not found.", crate::consts::PROGRAM_NAME, second_index.to_str().unwrap());
-        return Err(crate::error::Error::Filesystem)
-    }
+    let first_index = fetch_fs_nodes(args, "first-index")?;
+    let second_index = fetch_fs_nodes(args, "second-index")?;
+    let roots_a = roots(args, "a-root");
+    let roots_b = roots(args, "b-root");
 
     let output_dir = args.value_of("directory").unwrap();
 
-    let mut a = Vec::new();
-    let mut b = Vec::new();
+    compare::compare(first_index, second_index, roots_a, roots_b);
+    Ok(())
+}
 
+fn fetch_fs_nodes(args: &ArgMatches<'_>, arg_name: &str) -> crate::Result<Vec<FsNode>> {
+    let index_db_path = Path::new(args.value_of(arg_name).unwrap());
+    if !index_db_path.exists() {
+        eprintln!("{}: database '{}' not found.", crate::consts::PROGRAM_NAME, index_db_path.to_str().unwrap());
+        return Err(crate::error::Error::Filesystem)
+    }
+
+    let mut fs_nodes = Vec::new();
     { // open for db work
-        let conn_a = rusqlite::Connection::open(first_index)?;
-        let conn_b = rusqlite::Connection::open(second_index)?;
-
-        for fs_node in FsNode::select(&conn_a)? {
-            a.push(fs_node);
-        }
-        for fs_node in FsNode::select(&conn_b)? {
-            b.push(fs_node);
+        let conn = rusqlite::Connection::open(index_db_path)?;
+        for fs_node in FsNode::select(&conn)? {
+            fs_nodes.push(fs_node);
         }
     } // drops all db connections
 
-    compare::compare(a, b);
-    Ok(())
+    Ok(fs_nodes)
+}
+
+fn roots(args: &ArgMatches<'_>, arg_name: &str) -> Vec<String> {
+    let mut roots = Vec::new();
+    match args.values_of(arg_name) {
+        None => {
+            roots.push(String::from("/"));
+        },
+        Some(values) => {
+            for value in values {
+                roots.push(String::from(value));
+            }
+        }
+    }
+    return roots;
 }

@@ -1,7 +1,35 @@
 use std::fs;
 use rusqlite::types::{FromSqlResult, ValueRef};
 
-// TODO: why isnt u64 implemented for ToSql?
+///
+/// sha1_checksum: 40 chars long
+/// links_to: for soft links (symlinks)
+/// nlinks: number of hard links to this inode
+// macro_rules! fsnode_fields {
+//     //( $prefix:expr, $postfix:expr ) => {
+//     //    $prefix id $postfix
+//     //}
+//
+//     () => {
+//         id
+//         node_type
+//         sha1_checksum
+//         parent_path
+//         name
+//         size
+//         uid
+//         gid
+//         permissions
+//         creation_date
+//         modified_date
+//         links_to
+//         inode
+//         nlinks
+//     }
+// }
+
+// TODO: use diesel for ORM. https://github.com/diesel-rs/diesel
+// i64 instead of u64 beacause of some sqlite spec.
 #[derive(Default, Debug)]
 pub struct FsNode {
     pub id: i64,
@@ -139,20 +167,20 @@ impl FsNode {
     pub fn map_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<FsNode> {
         let c = row.column_count();
         Ok(FsNode {
-            id: row.get(0)?,
-            node_type: row.get(1)?,
-            sha1_checksum: row.get(2)?,
-            parent_path: row.get(3)?,
-            name: row.get(4)?,
-            size: row.get(5)?,
-            uid: row.get(6)?,
-            gid: row.get(7)?,
-            permissions: row.get(8)?,
-            creation_date: row.get(9)?,
-            modified_date: row.get(10)?,
-            links_to: row.get(11)?,
-            inode: row.get(12)?,
-            nlinks: row.get(13)?,
+            id: row.get("id")?,
+            node_type: row.get("node_type")?,
+            sha1_checksum: row.get("sha1_checksum")?,
+            parent_path: row.get("parent_path")?,
+            name: row.get("name")?,
+            size: row.get("size")?,
+            uid: row.get("uid")?,
+            gid: row.get("gid")?,
+            permissions: row.get("permissions")?,
+            creation_date: row.get("creation_date")?,
+            modified_date: row.get("modified_date")?,
+            links_to: row.get("links_to")?,
+            inode: row.get("inode")?,
+            nlinks: row.get("nlinks")?,
         })
     }
 

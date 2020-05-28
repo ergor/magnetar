@@ -82,11 +82,22 @@ fn main() -> crate::Result<()> {
             .help("The directory to store the generated comparison report in.")
             .required(true));
 
+    let subcmd_dupes = App::new("dupes")
+        .about("Finds duplicates in indexing-run database(s).")
+        .setting(AppSettings::TrailingVarArg)
+        .arg(Arg::with_name("indexes")
+            .value_name("FILES")
+            .index(1)
+            .help("The index database(s) to check for duplicates.")
+            .required(true)
+            .multiple(true));
+
     let args = App::new(consts::PROGRAM_NAME)
         .version(clap::crate_version!())
         .about("Filesystem indexer for archival management")
         .subcommand(subcmd_indexer)
         .subcommand(subcmd_comparator)
+        .subcommand(subcmd_dupes)
         .get_matches();
 
     if let Some(args) = args.subcommand_matches("index") {
