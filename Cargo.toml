@@ -4,6 +4,10 @@ version = "0.1.0"
 authors = ["Erol Gorancic"]
 edition = "2018"
 
+[features]
+# run with 'cargo --feature "verbose"' to enable verbose debug logs
+verbose = []
+
 [dependencies]
 # sha1 digest
 sha1 = "0.6.0"

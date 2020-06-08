@@ -30,7 +30,7 @@ use rusqlite::types::{FromSqlResult, ValueRef};
 
 // TODO: use diesel for ORM. https://github.com/diesel-rs/diesel
 // i64 instead of u64 beacause of some sqlite spec.
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct FsNode {
     pub id: i64,
     pub node_type: NodeType,
@@ -49,7 +49,7 @@ pub struct FsNode {
     //pub parent_id: i64, // fk: FsNode::id
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum NodeType {
     File,
     Directory,

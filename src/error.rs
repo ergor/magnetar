@@ -8,6 +8,7 @@ pub enum Error {
     IO(io::Error),
     NoneError,
     SystemTimeError(time::SystemTimeError),
+    WithMessage(&'static str),
 }
 
 impl From<rusqlite::Error> for Error {
@@ -32,5 +33,11 @@ impl From<io::Error> for Error {
 impl From<time::SystemTimeError> for Error {
     fn from(e: time::SystemTimeError) -> Error {
         Error::SystemTimeError(e)
+    }
+}
+
+impl From<&'static str> for Error {
+    fn from(msg: &'static str) -> Self {
+        Error::WithMessage(msg)
     }
 }

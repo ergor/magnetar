@@ -1,19 +1,36 @@
 pub mod compare;
 pub mod comparison;
+pub mod virtual_fs_node;
 
 use clap::ArgMatches;
 use crate::db_models::fs_node::FsNode;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::collections::HashSet;
+use crate::error::Error;
+
+const MSG_DESCENDANT_ROOTS: &str = "roots cannot be direct descendants of each other";
 
 pub fn run(args: &ArgMatches<'_>) -> crate::Result<()> {
     let first_index = fetch_fs_nodes(args, "first-index")?;
     let second_index = fetch_fs_nodes(args, "second-index")?;
-    let roots_a = roots(args, "a-root");
-    let roots_b = roots(args, "b-root");
+
+    let roots_a = roots(args, "root-a");
+    let roots_b = roots(args, "root-b");
+
+    if let Err(invalid_roots) = validate_roots(&roots_a) {
+        eprintln!("comparator: index 'a': invalid roots: {:?}\n{}", invalid_roots, MSG_DESCENDANT_ROOTS);
+        return Err(Error::WithMessage(MSG_DESCENDANT_ROOTS));
+    }
+    if let Err(invalid_roots) = validate_roots(&roots_a) {
+        eprintln!("comparator: index 'b': invalid roots: {:?}\n{}", invalid_roots, MSG_DESCENDANT_ROOTS);
+        return Err(Error::WithMessage(MSG_DESCENDANT_ROOTS));
+    }
 
     let output_dir = args.value_of("directory").unwrap();
 
-    compare::compare(first_index, second_index, roots_a, roots_b);
+    let pool_a = compare::make_pool(&first_index,  roots_a)?;
+    let pool_b = compare::make_pool(&second_index, roots_b)?;
+
     Ok(())
 }
 
@@ -48,4 +65,24 @@ fn roots(args: &ArgMatches<'_>, arg_name: &str) -> Vec<String> {
         }
     }
     return roots;
+}
+
+fn validate_roots(roots: &Vec<String>) -> Result<(), HashSet<String>> {
+    let mut invalid_roots: HashSet<String> = HashSet::new();
+
+    for i in 0..roots.len() {
+        let root_i = PathBuf::from(&roots[i]);
+        for j in i+1..roots.len() {
+            let root_j = PathBuf::from(&roots[j]);
+            if root_j.starts_with(&root_i) {
+                invalid_roots.insert(String::from(root_i.to_str().unwrap()));
+                invalid_roots.insert(String::from(root_j.to_str().unwrap()));
+            }
+        }
+    }
+
+    if invalid_roots.is_empty() {
+        return Ok(());
+    }
+    Err(invalid_roots)
 }
