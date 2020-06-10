@@ -60,6 +60,12 @@ fn main() -> crate::Result<()> {
             .value_name("FILE")
             .help("Second input database file.")
             .required(true))
+        .arg(Arg::with_name("directory")
+            .short("o")
+            .long("output-dir")
+            .value_name("DIRECTORY")
+            .help("The directory to store the generated comparison report in.")
+            .required(true))
         .arg(Arg::with_name("root-a")
             .long("root-a")
             .value_name("ROOT")
@@ -75,12 +81,7 @@ fn main() -> crate::Result<()> {
             .multiple(true)
             .help("Add ROOT as a comparison root for the 'b' (i.e. second) index.\n\
                   This option can be specified multiple times.\n\
-                  If no root is specified, '/' is assumed."))
-        .arg(Arg::with_name("directory")
-            .value_name("DIRECTORY")
-            .index(1)
-            .help("The directory to store the generated comparison report in.")
-            .required(true));
+                  If no root is specified, '/' is assumed."));
 
     let subcmd_dupes = App::new("dupes")
         .about("Finds duplicates in indexing-run database(s).")

@@ -1,4 +1,4 @@
-use crate::comparator::comparison::Comparison;
+use crate::comparator::comparison::{Comparison, ChangeType};
 use crate::comparator::comparison;
 use crate::db_models::fs_node::{FsNode, NodeType};
 use std::collections::{HashMap, BTreeMap, BTreeSet, HashSet};
@@ -28,83 +28,93 @@ const LI_DIR: &str = r#"<li class="collapse">
 
 
 /// Creates a pool where the virtual nodes are sorted by path.
-pub fn make_pool(fs_nodes: &Vec<FsNode>, roots: Vec<String>) -> Result<Vec<VirtualFsNode>, &'static str> {
+pub fn make_pool(fs_nodes: &Vec<FsNode>, roots: Vec<String>) -> Result<BTreeMap<String, VirtualFsNode>, &'static str> {
     #[cfg(feature = "verbose")]
     println!("make_pool: start...");
 
     let relevant: Vec<(String, &FsNode)> = filter_by_roots(fs_nodes, roots);
 
-    // TODO: sort
     let virtual_nodes: Vec<VirtualFsNode> = relevant.into_iter()
         .map(|tuple| VirtualFsNode::from(tuple))
         .collect();
 
-    let mut virtual_paths: HashSet<String> = HashSet::new();
+    // BTreeMap because the implicit ordering by the key (i.e. the virtual path) is important!
+    let mut v_node_map: BTreeMap<String, VirtualFsNode> = BTreeMap::new();
 
-    for virtual_node in &virtual_nodes {
-
-        #[cfg(feature = "verbose")]
-        println!("{:?}", virtual_node);
-
-        if virtual_paths.contains(&virtual_node.virtual_path) {
-
+    for virtual_node in virtual_nodes {
+        if v_node_map.contains_key(&virtual_node.virtual_path) {
             #[cfg(feature = "verbose")]
             println!("make_pool: Err");
 
-            return Err("compare: make_pool: duplicate virtual path for the given roots.");
+            return Err("compare.rs: make_pool: duplicate virtual path for the given roots.");
         }
-        virtual_paths.insert(virtual_node.virtual_path.clone());
+        v_node_map.insert(virtual_node.virtual_path.clone(), virtual_node);
     }
+
+    #[cfg(feature = "verbose")]
+    v_node_map.iter()
+        .for_each(|n| println!("{:?}", n.1));
 
     #[cfg(feature = "verbose")]
     println!("make_pool: Ok");
 
-    Ok(virtual_nodes)
+    Ok(v_node_map)
 }
 
 /// for each pool, the virtual path must be unique.
-pub fn compare(pool_a: Vec<VirtualFsNode>, pool_b: Vec<VirtualFsNode>) {
+/// **pool_a** is defined as the old index, and **pool_b** is the new.
+pub fn compare<'a>(pool_a: BTreeMap<String, VirtualFsNode<'a>>, pool_b: BTreeMap<String, VirtualFsNode<'a>>) -> Vec<Comparison<'a>> {
     let html = include_str!("report.html");
     let generated = html.replace("${tree-nodes}", "");
 
-    // let mut tree: indextree::Arena<Comparison> = indextree::Arena::new();
-    //
-    // // TODO: sort by parent_path before inserting here
-    // let mut parents_a: BTreeMap<String, Vec<&FsNode>> = BTreeMap::new();
-    //
-    // // TODO: sort by parent_path before inserting here
-    // let mut parents_b: BTreeMap<String, Vec<&FsNode>> = BTreeMap::new();
+    let v_paths_a: BTreeSet<String> = BTreeSet::from_iter(pool_a.keys().cloned());
+    let v_paths_b: BTreeSet<String> = BTreeSet::from_iter(pool_b.keys().cloned());
 
-    //populate(&mut tree, &a, true);
-    //populate(&mut tree, &b, false);
 
-    //println!("{}", generated);
+    let mut deletions: BTreeMap<String, Comparison> = BTreeMap::from_iter(
+        v_paths_a.difference(&v_paths_b)
+        .map(|v_path| (v_path.clone(), Comparison::new(Some(pool_a.get(v_path).unwrap().fs_node), None, v_path.clone())))
+    );
+
+    let mut creations: BTreeMap<String, Comparison> = BTreeMap::from_iter(
+        v_paths_b.difference(&v_paths_a)
+        .map(|v_path| (v_path.clone(), Comparison::new(None, Some(pool_b.get(v_path).unwrap().fs_node), v_path.clone())))
+    );
+
+    // TODO: accept args for what shall count as a change
+    // the intersection contains both modified and unmodified files
+    let mut intersection: BTreeMap<String, Comparison> = BTreeMap::from_iter(
+        v_paths_a.intersection(&v_paths_b)
+        .map(|v_path| (v_path.clone(), Comparison::new(Some(pool_a.get(v_path).unwrap().fs_node), Some(pool_b.get(v_path).unwrap().fs_node), v_path.clone())))
+    );
+
+    let union: BTreeSet<String> = v_paths_a.union(&v_paths_b).cloned().collect();
+
+    assert_eq!(union.len(), deletions.len() + creations.len() + intersection.len());
+
+    let mut result = Vec::new();
+
+    for v_path in union {
+        if let Some(comparison) = deletions.remove(&v_path) {
+            result.push(comparison);
+        }
+        else if let Some(comparison) = creations.remove(&v_path) {
+            result.push(comparison);
+        }
+        else if let Some(comparison) = intersection.remove(&v_path) {
+            result.push(comparison);
+        }
+        else {
+            unreachable!("compare.rs: compare: if-block exhausted");
+        }
+    }
+
+    #[cfg(feature = "verbose")]
+    result.iter()
+        .for_each(|cmp| println!("{:?}", cmp));
+
+    result
 }
-
-// fn wrap_fs_nodes(fs_nodes: &Vec<FsNode>) -> Vec<VirtualFsNode> {
-//     let mut wrapped_nodes = Vec::new();
-//
-//     for fs_node in fs_nodes {
-//         let mut full_path = PathBuf::from(&fs_node.parent_path);
-//         full_path.push(&fs_node.name);
-//         wrapped_nodes.push(VirtualFsNode {
-//             full_path: String::from(full_path.to_str().unwrap()),
-//             fs_node
-//         });
-//     }
-//
-//     return wrapped_nodes;
-// }
-
-// fn hashmap<'a>(wrapped_nodes: &'a Vec<VirtualFsNode>) -> HashMap<String, &'a VirtualFsNode<'a>> {
-//     let mut map: HashMap<String, &'a VirtualFsNode<'a>> = HashMap::new();
-//
-//     for wrapped_node in wrapped_nodes {
-//         map.insert(wrapped_node.full_path.clone(), wrapped_node);
-//     }
-//
-//     return map;
-// }
 
 fn filter_by_roots(fs_nodes: &Vec<FsNode>, roots: Vec<String>) -> Vec<(String, &FsNode)> {
     let roots = BTreeSet::from_iter(roots.iter().cloned());
@@ -125,36 +135,6 @@ fn find_root<'a, 'b>(fs_node: &'a FsNode, parents: &'b BTreeSet<String>) -> Opti
     }
     return None;
 }
-
-// fn populate<'a>(tree: &mut HashMap<String, Vec<Comparison<'a>>>, fs_nodes: &'a Vec<FsNode>, is_a: bool) {
-//
-//     fn set(comparison: &mut Comparison, fs_node: &FsNode) {
-//         if is_a {
-//             comparison.set_a(fs_node);
-//         } else {
-//             comparison.set_b(fs_node);
-//         }
-//     }
-//
-//     for fs_node in fs_nodes {
-//         let parent_path = &fs_node.parent_path;
-//         let entry = tree.get_mut(parent_path);
-//         match entry {
-//             None => {
-//                 let mut comparison = Comparison::new();
-//                 set(&mut comparison, fs_node);
-//
-//                 let mut comparisons = Vec::new();
-//                 comparisons.push(comparison);
-//
-//                 tree.insert(parent_path.clone(), comparisons);
-//             },
-//             Some(comparisons) => {
-//                 comparisons.push(fs_node);
-//             }
-//         }
-//     }
-// }
 
 fn file(fs_node: FsNode) -> String {
     let file_info = format!("{}", fs_node.name);

@@ -12,6 +12,7 @@ verbose = []
 # sha1 digest
 sha1 = "0.6.0"
 
+# TODO: is this used?
 # for creating tree structures in memory (e.g. filesystem structure)
 indextree = "4.0.0"
 

@@ -1,10 +1,15 @@
 use crate::db_models::fs_node::FsNode;
+use std::panic::resume_unwind;
 
+#[derive(Clone, Debug)]
 pub struct Comparison<'a> {
+    change_type: ChangeType,
+    virtual_path: String,
     a: Option<&'a FsNode>,
-    b: Option<&'a FsNode>
+    b: Option<&'a FsNode>,
 }
 
+#[derive(Clone, Eq, PartialEq, Debug)]
 pub enum ChangeType {
     Creation,
     Deletion,
@@ -24,11 +29,15 @@ impl ChangeType {
 }
 
 impl<'a> Comparison<'a> {
-    pub fn new() -> Comparison<'a> {
-        Comparison {
-            a: None,
-            b: None
-        }
+    pub fn new(a: Option<&'a FsNode>, b: Option<&'a FsNode>, virtual_path: String) -> Comparison<'a> {
+        let mut comparison = Comparison {
+            change_type: ChangeType::NoChange,
+            virtual_path,
+            a,
+            b,
+        };
+        comparison.change_type = comparison.change_type();
+        return comparison;
     }
 
     pub fn change_type(&self) -> ChangeType {

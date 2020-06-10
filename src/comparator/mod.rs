@@ -31,6 +31,7 @@ pub fn run(args: &ArgMatches<'_>) -> crate::Result<()> {
     let pool_a = compare::make_pool(&first_index,  roots_a)?;
     let pool_b = compare::make_pool(&second_index, roots_b)?;
 
+    let comparisons = compare::compare(pool_a, pool_b);
     Ok(())
 }
 
