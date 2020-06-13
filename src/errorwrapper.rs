@@ -7,7 +7,6 @@ use std::fmt;
 #[derive(Debug)]
 pub enum ErrorWrapper {
     Rusqlite(rusqlite::Error),
-    Filesystem,
     IO(io::Error),
     SystemTimeError(time::SystemTimeError),
     AppError(AppError),
@@ -48,7 +47,6 @@ impl fmt::Display for ErrorWrapper {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let buf: String = match self {
             ErrorWrapper::Rusqlite(e) =>        { format!("{}", e) },
-            ErrorWrapper::Filesystem =>         { format!("filesystem error.") },
             ErrorWrapper::IO(e) =>              { format!("{}", e) },
             ErrorWrapper::SystemTimeError(e) => { format!("{}", e) },
             ErrorWrapper::AppError(e) =>        { format!("{}", e) },

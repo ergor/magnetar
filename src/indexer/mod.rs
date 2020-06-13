@@ -18,7 +18,7 @@ pub fn run(args: &ArgMatches<'_>) -> crate::ConvertibleResult<()> {
                 continue;
             }
             if dir.starts_with(other_dir) {
-                eprintln!("{} is subdirectory of {}. abort.", dir, other_dir);
+                log::error!("{} is subdirectory of {}. abort.", dir, other_dir);
                 exit(consts::EXIT_INVALID_ARGS);
             }
         }
@@ -45,7 +45,7 @@ pub fn run(args: &ArgMatches<'_>) -> crate::ConvertibleResult<()> {
 
         #[cfg(not(target_os = "linux"))]
         {
-            eprintln!("{}: listening mode is only supported on linux (inotify)", consts::PROGRAM_NAME);
+            log::error!("listening mode is only supported on linux (inotify)");
             exit(consts::EXIT_INVALID_ARGS);
         }
     } else {

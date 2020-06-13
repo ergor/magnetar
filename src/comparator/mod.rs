@@ -10,16 +10,15 @@ use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use crate::ConvertibleResult;
 
-const MSG_DESCENDANT_ROOTS: &str = "";
-
 macro_rules! validate_roots {
     ($roots_ref:expr, $index_name:literal) => {
         {
             if let Err(invalid_roots) = _validate_roots($roots_ref) {
-                let err_msg: String = format!("index '{}': invalid roots: {:?}\nroots cannot be direct descendants of each other", $index_name, invalid_roots);
-                let error = ErrorWrapper::AppError(AppError::WithMessage(err_msg));
+                let error = AppError::WithMessage(
+                    format!("index '{}': invalid roots: {:?}\nroots cannot be direct descendants of each other", $index_name, invalid_roots)
+                );
                 log::error!("{}", error);
-                return Err(error);
+                return Err(ErrorWrapper::AppError(error));
             }
         }
     }
@@ -47,8 +46,11 @@ pub fn run(args: &ArgMatches<'_>) -> ConvertibleResult<()> {
 fn fetch_fs_nodes(args: &ArgMatches<'_>, arg_name: &str) -> crate::ConvertibleResult<Vec<FsNode>> {
     let index_db_path = Path::new(args.value_of(arg_name).unwrap());
     if !index_db_path.exists() {
-        eprintln!("{}: database '{}' not found.", crate::consts::PROGRAM_NAME, index_db_path.to_str().unwrap());
-        return Err(ErrorWrapper::Filesystem)
+        let error = AppError::WithMessage(
+            format!("database '{}' not found.", index_db_path.to_str().unwrap_or("(.to_str() failed)"))
+        );
+        log::error!("{}", error);
+        return Err(ErrorWrapper::AppError(error))
     }
 
     let mut fs_nodes = Vec::new();

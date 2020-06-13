@@ -108,9 +108,8 @@ pub fn compare<'a>(pool_a: BTreeMap<String, VirtualFsNode<'a>>, pool_b: BTreeMap
         }
     }
 
-    #[cfg(feature = "verbose")]
     result.iter()
-        .for_each(|cmp| println!("{:?}", cmp));
+        .for_each(|cmp| log::trace!("{:?}", cmp));
 
     result
 }

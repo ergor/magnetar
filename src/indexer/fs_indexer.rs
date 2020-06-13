@@ -23,7 +23,7 @@ pub fn index(dir_path: &str) -> io::Result<Vec<FsNode>> {
                 fs_nodes.push(fs_node);
             }
             Err(e) => {
-                eprintln!("could not read file info: {:?}", e);
+                log::error!("could not read file info: {}", e);
             },
         }
     }

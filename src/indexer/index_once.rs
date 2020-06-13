@@ -9,14 +9,14 @@ pub fn start(db_path: &str, directories: clap::Values<'_>, force: bool) -> crate
         match fs_indexer::index(dir) {
             Ok(fs_nodes) => {
                 for fs_node in fs_nodes {
-                    println!("{:?}", fs_node);
+                    log::trace!("{:?}", fs_node);
                     if let Err(e) = fs_node.insert(&conn) {
-                        eprintln!("could not insert fsnode entry into db: {}", e);
+                        log::error!("could not insert fsnode entry into db: {}", e);
                     }
                 }
             },
             Err(e) => {
-                eprintln!("{}: {}: could not index directory.", consts::PROGRAM_NAME, dir);
+                log::error!("{}: could not index directory.", dir);
             },
         };
     }
