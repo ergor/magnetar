@@ -6,11 +6,11 @@ use clap::ArgMatches;
 use crate::db_models::fs_node::FsNode;
 use std::path::{Path, PathBuf};
 use std::collections::HashSet;
-use crate::error::Error;
+use crate::error::ErrorWrapper;
 
 const MSG_DESCENDANT_ROOTS: &str = "roots cannot be direct descendants of each other";
 
-pub fn run(args: &ArgMatches<'_>) -> crate::Result<()> {
+pub fn run(args: &ArgMatches<'_>) -> crate::ConvertibleResult<()> {
     let first_index = fetch_fs_nodes(args, "first-index")?;
     let second_index = fetch_fs_nodes(args, "second-index")?;
 
@@ -19,11 +19,11 @@ pub fn run(args: &ArgMatches<'_>) -> crate::Result<()> {
 
     if let Err(invalid_roots) = validate_roots(&roots_a) {
         eprintln!("comparator: index 'a': invalid roots: {:?}\n{}", invalid_roots, MSG_DESCENDANT_ROOTS);
-        return Err(Error::WithMessage(MSG_DESCENDANT_ROOTS));
+        return Err(ErrorWrapper::WithMessage(MSG_DESCENDANT_ROOTS));
     }
     if let Err(invalid_roots) = validate_roots(&roots_a) {
         eprintln!("comparator: index 'b': invalid roots: {:?}\n{}", invalid_roots, MSG_DESCENDANT_ROOTS);
-        return Err(Error::WithMessage(MSG_DESCENDANT_ROOTS));
+        return Err(ErrorWrapper::WithMessage(MSG_DESCENDANT_ROOTS));
     }
 
     let output_dir = args.value_of("directory").unwrap();
@@ -35,11 +35,11 @@ pub fn run(args: &ArgMatches<'_>) -> crate::Result<()> {
     Ok(())
 }
 
-fn fetch_fs_nodes(args: &ArgMatches<'_>, arg_name: &str) -> crate::Result<Vec<FsNode>> {
+fn fetch_fs_nodes(args: &ArgMatches<'_>, arg_name: &str) -> crate::ConvertibleResult<Vec<FsNode>> {
     let index_db_path = Path::new(args.value_of(arg_name).unwrap());
     if !index_db_path.exists() {
         eprintln!("{}: database '{}' not found.", crate::consts::PROGRAM_NAME, index_db_path.to_str().unwrap());
-        return Err(crate::error::Error::Filesystem)
+        return Err(crate::error::ErrorWrapper::Filesystem)
     }
 
     let mut fs_nodes = Vec::new();

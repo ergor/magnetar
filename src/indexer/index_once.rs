@@ -1,6 +1,6 @@
 use crate::{create_tables, fs_indexer, consts};
 
-pub fn start(db_path: &str, directories: clap::Values<'_>, force: bool) -> crate::Result<()> {
+pub fn start(db_path: &str, directories: clap::Values<'_>, force: bool) -> crate::ConvertibleResult<()> {
 
     let conn = rusqlite::Connection::open(db_path)?;
     create_tables::execute(&conn)?;

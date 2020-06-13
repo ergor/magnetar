@@ -30,7 +30,7 @@ pub fn index(dir_path: &str) -> io::Result<Vec<FsNode>> {
     Ok(fs_nodes)
 }
 
-fn process_dir_entry(entry: io::Result<fs::DirEntry>, read_buf: &mut [u8]) -> crate::Result<FsNode> {
+fn process_dir_entry(entry: io::Result<fs::DirEntry>, read_buf: &mut [u8]) -> crate::ConvertibleResult<FsNode> {
     let entry = entry?;
 
     if entry.path().is_relative() {
@@ -55,7 +55,7 @@ fn process_dir_entry(entry: io::Result<fs::DirEntry>, read_buf: &mut [u8]) -> cr
 
     match entry.file_name().to_str() { // TODO: rewrite using the ?-operator when the Try trait becomes stable
         Some(file_name) => fs_node.name = String::from(file_name),
-        None => return Err(error::Error::NoneError),
+        None => return Err(error::ErrorWrapper::NoneError),
     };
 
     fs_node.size = metadata.len() as i64;
@@ -81,7 +81,7 @@ fn process_dir_entry(entry: io::Result<fs::DirEntry>, read_buf: &mut [u8]) -> cr
     if let NodeType::Symlink = fs_node.node_type {
         match fs::read_link(entry.path())?.to_str() { // TODO: rewrite using the ?-operator when the Try trait becomes stable
             Some(path_str) => fs_node.links_to = String::from(path_str),
-            None => return Err(error::Error::NoneError),
+            None => return Err(error::ErrorWrapper::NoneError),
         }
     }
 

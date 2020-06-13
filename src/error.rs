@@ -1,9 +1,10 @@
 
 use std::{io, time};
 
+/// An error type containing other error types, useful for convertible Result .
 #[derive(Debug)]
-pub enum Error {
-    Database(rusqlite::Error),
+pub enum ErrorWrapper {
+    Rusqlite(rusqlite::Error),
     Filesystem,
     IO(io::Error),
     NoneError,
@@ -11,33 +12,33 @@ pub enum Error {
     WithMessage(&'static str),
 }
 
-impl From<rusqlite::Error> for Error {
-    fn from(e: rusqlite::Error) -> Error {
-        Error::Database(e)
+impl From<rusqlite::Error> for ErrorWrapper {
+    fn from(e: rusqlite::Error) -> ErrorWrapper {
+        ErrorWrapper::Rusqlite(e)
     }
 }
 
-impl From<(rusqlite::Connection, rusqlite::Error)> for Error {
-    fn from(e: (rusqlite::Connection, rusqlite::Error)) -> Error {
-        let (conn, error) = e;
-        Error::Database(error)
+impl From<(rusqlite::Connection, rusqlite::Error)> for ErrorWrapper {
+    fn from(e: (rusqlite::Connection, rusqlite::Error)) -> ErrorWrapper {
+        let (_, error) = e;
+        ErrorWrapper::Rusqlite(error)
     }
 }
 
-impl From<io::Error> for Error {
-    fn from(e: io::Error) -> Error {
-        Error::IO(e)
+impl From<io::Error> for ErrorWrapper {
+    fn from(e: io::Error) -> ErrorWrapper {
+        ErrorWrapper::IO(e)
     }
 }
 
-impl From<time::SystemTimeError> for Error {
-    fn from(e: time::SystemTimeError) -> Error {
-        Error::SystemTimeError(e)
+impl From<time::SystemTimeError> for ErrorWrapper {
+    fn from(e: time::SystemTimeError) -> ErrorWrapper {
+        ErrorWrapper::SystemTimeError(e)
     }
 }
 
-impl From<&'static str> for Error {
+impl From<&'static str> for ErrorWrapper {
     fn from(msg: &'static str) -> Self {
-        Error::WithMessage(msg)
+        ErrorWrapper::WithMessage(msg)
     }
 }

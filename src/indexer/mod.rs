@@ -8,7 +8,7 @@ use std::env;
 use std::process::exit;
 use std::time::SystemTime;
 
-pub fn run(args: &ArgMatches<'_>) -> crate::Result<()> {
+pub fn run(args: &ArgMatches<'_>) -> crate::ConvertibleResult<()> {
     let directories = args.values_of("directories").unwrap();
 
     // disallow indexing of subdirectories

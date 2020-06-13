@@ -13,9 +13,9 @@ use std::env;
 use std::result;
 
 
-pub type Result<T, E = crate::error::Error> = result::Result<T, E>;
+pub type ConvertibleResult<T, E = crate::error::ErrorWrapper> = result::Result<T, E>;
 
-fn main() -> crate::Result<()> {
+fn main() -> crate::ConvertibleResult<()> {
 
     let subcmd_indexer = App::new("index")
         .about("Create index of chosen directories and store in a database file.")
