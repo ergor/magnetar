@@ -2,13 +2,13 @@ pub mod fs_indexer;
 pub mod index_once;
 pub mod listener;
 
-use clap::ArgMatches;
+use clap;
 use crate::consts;
 use std::env;
 use std::process::exit;
 use std::time::SystemTime;
 
-pub fn run(args: &ArgMatches<'_>) -> crate::ConvertibleResult<()> {
+pub fn run(args: &clap::ArgMatches<'_>) -> crate::ConvertibleResult<()> {
     let directories = args.values_of("directories").unwrap();
 
     // disallow indexing of subdirectories
@@ -61,3 +61,33 @@ pub fn run(args: &ArgMatches<'_>) -> crate::ConvertibleResult<()> {
     Ok(())
 }
 
+pub fn cmdline<'a>() -> clap::App<'a, 'a> {
+    clap::App::new("index")
+        .about("Create index of chosen directories and store in a database file.")
+        .setting(clap::AppSettings::TrailingVarArg)
+        .arg(clap::Arg::with_name("daemonize")
+            .short("d")
+            .long("daemonize")
+            .help("Run the program in background")
+            .takes_value(false))
+        .arg(clap::Arg::with_name("force")
+            .short("f")
+            .long("force")
+            .help("Create a new index instead of diffing current")
+            .takes_value(false))
+        .arg(clap::Arg::with_name("listen")
+            .short("l")
+            .long("listen")
+            .help("Listen for filesystem changes instead of active indexing")
+            .takes_value(false))
+        .arg(clap::Arg::with_name("output-dir")
+            .short("o")
+            .long("output-dir")
+            .value_name("OUTPUT DIR")
+            .help("Store database file in OUTPUT DIR"))
+        .arg(clap::Arg::with_name("directories")
+            .value_name("DIRECTORIES")
+            .help("The directories to index")
+            .required(true)
+            .multiple(true))
+}
