@@ -26,7 +26,7 @@ impl<'a> From<(String, &'a FsNode)> for VirtualFsNode<'a> {
         full_path.push(&fs_node.name);
 
         let root = PathBuf::from(&root_string);
-        let mut virtual_path = full_path.clone();
+        let virtual_path = full_path.clone();
         let virtual_path = virtual_path.strip_prefix(&root)
             .expect("root path was not prefix of the full path");
 

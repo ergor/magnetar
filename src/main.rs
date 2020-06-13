@@ -1,3 +1,7 @@
+//!
+//! magnetar
+//!
+
 #![warn(missing_debug_implementations, rust_2018_idioms, missing_docs)]
 
 mod apperror;
@@ -16,7 +20,8 @@ use std::env;
 use std::result;
 use flexi_logger;
 
-
+/// A `Result` type that uses [ErrorWrapper]() as error type, which implements the [From]() trait
+/// on every error type used in this program.
 pub type ConvertibleResult<T, E = ErrorWrapper> = result::Result<T, E>;
 
 fn main() -> crate::ConvertibleResult<()> {

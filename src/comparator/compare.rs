@@ -29,18 +29,18 @@ const LI_DIR: &str = r#"<li class="collapse">
 
 
 /// Creates a pool where the virtual nodes are sorted by path.
-pub fn make_pool(fs_nodes: &Vec<FsNode>, roots: Vec<String>) -> Result<BTreeMap<String, VirtualFsNode>, AppError> {
+pub fn make_pool(fs_nodes: &Vec<FsNode>, roots: Vec<String>) -> Result<BTreeMap<String, VirtualFsNode<'_>>, AppError> {
 
-    log::trace!("start...");
+    log::trace!("start...");0
 
     let relevant: Vec<(String, &FsNode)> = filter_by_roots(fs_nodes, roots);
 
-    let virtual_nodes: Vec<VirtualFsNode> = relevant.into_iter()
+    let virtual_nodes: Vec<VirtualFsNode<'_>> = relevant.into_iter()
         .map(|tuple| VirtualFsNode::from(tuple))
         .collect();
 
     // BTreeMap because the implicit ordering by the key (i.e. the virtual path) is important!
-    let mut v_node_map: BTreeMap<String, VirtualFsNode> = BTreeMap::new();
+    let mut v_node_map: BTreeMap<String, VirtualFsNode<'_>> = BTreeMap::new();
 
     for virtual_node in virtual_nodes {
         let v_path = &virtual_node.virtual_path;
@@ -70,19 +70,19 @@ pub fn compare<'a>(pool_a: BTreeMap<String, VirtualFsNode<'a>>, pool_b: BTreeMap
     let v_paths_b: BTreeSet<String> = BTreeSet::from_iter(pool_b.keys().cloned());
 
 
-    let mut deletions: BTreeMap<String, Comparison> = BTreeMap::from_iter(
+    let mut deletions: BTreeMap<String, Comparison<'_>> = BTreeMap::from_iter(
         v_paths_a.difference(&v_paths_b)
         .map(|v_path| (v_path.clone(), Comparison::new(Some(pool_a.get(v_path).unwrap().fs_node), None, v_path.clone())))
     );
 
-    let mut creations: BTreeMap<String, Comparison> = BTreeMap::from_iter(
+    let mut creations: BTreeMap<String, Comparison<'_>> = BTreeMap::from_iter(
         v_paths_b.difference(&v_paths_a)
         .map(|v_path| (v_path.clone(), Comparison::new(None, Some(pool_b.get(v_path).unwrap().fs_node), v_path.clone())))
     );
 
     // TODO: accept args for what shall count as a change
     // the intersection contains both modified and unmodified files
-    let mut intersection: BTreeMap<String, Comparison> = BTreeMap::from_iter(
+    let mut intersection: BTreeMap<String, Comparison<'_>> = BTreeMap::from_iter(
         v_paths_a.intersection(&v_paths_b)
         .map(|v_path| (v_path.clone(), Comparison::new(Some(pool_a.get(v_path).unwrap().fs_node), Some(pool_b.get(v_path).unwrap().fs_node), v_path.clone())))
     );
