@@ -12,6 +12,12 @@ verbose = []
 # sha1 digest
 sha1 = "0.6.0"
 
+# logging frontend
+log = "0.4.8"
+
+# logging implementation
+flexi_logger = "0.15.4"
+
 # TODO: is this used?
 # for creating tree structures in memory (e.g. filesystem structure)
 indextree = "4.0.0"

@@ -6,7 +6,7 @@ use std::fs::read;
 use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
 use crate::comparator::virtual_fs_node::VirtualFsNode;
-use crate::error::AppError;
+use crate::apperror::AppError;
 
 const LI_FILE: &str = r#"<li>
                              <table>
@@ -30,8 +30,8 @@ const LI_DIR: &str = r#"<li class="collapse">
 
 /// Creates a pool where the virtual nodes are sorted by path.
 pub fn make_pool(fs_nodes: &Vec<FsNode>, roots: Vec<String>) -> Result<BTreeMap<String, VirtualFsNode>, AppError> {
-    #[cfg(feature = "verbose")]
-    println!("make_pool: start...");
+
+    log::trace!("start...");
 
     let relevant: Vec<(String, &FsNode)> = filter_by_roots(fs_nodes, roots);
 
@@ -43,21 +43,19 @@ pub fn make_pool(fs_nodes: &Vec<FsNode>, roots: Vec<String>) -> Result<BTreeMap<
     let mut v_node_map: BTreeMap<String, VirtualFsNode> = BTreeMap::new();
 
     for virtual_node in virtual_nodes {
-        if v_node_map.contains_key(&virtual_node.virtual_path) {
-            #[cfg(feature = "verbose")]
-            println!("make_pool: Err");
-
-            return Err(AppError::WithMessage("compare.rs: make_pool: duplicate virtual path for the given roots."));
+        let v_path = &virtual_node.virtual_path;
+        if v_node_map.contains_key(v_path) {
+            let error = AppError::WithMessage(format!("duplicate virtual path for the given roots: '{}'", v_path));
+            log::error!("error: {}", error);
+            return Err(error);
         }
-        v_node_map.insert(virtual_node.virtual_path.clone(), virtual_node);
+        v_node_map.insert(v_path.clone(), virtual_node);
     }
 
-    #[cfg(feature = "verbose")]
     v_node_map.iter()
-        .for_each(|n| println!("{:?}", n.1));
+        .for_each(|(_, v_node)| log::trace!("{:?}", v_node));
 
-    #[cfg(feature = "verbose")]
-    println!("make_pool: Ok");
+    log::trace!("OK");
 
     Ok(v_node_map)
 }

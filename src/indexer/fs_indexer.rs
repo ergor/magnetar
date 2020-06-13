@@ -1,5 +1,6 @@
 use crate::db_models::fs_node::{FsNode, NodeType};
-use crate::error::{ErrorWrapper, AppError};
+use crate::errorwrapper::ErrorWrapper;
+use crate::apperror::AppError;
 use std::fs;
 use std::io::{Read};
 use std::io;

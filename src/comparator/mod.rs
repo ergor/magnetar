@@ -3,13 +3,27 @@ pub mod comparison;
 pub mod virtual_fs_node;
 
 use clap::ArgMatches;
+use crate::apperror::AppError;
 use crate::db_models::fs_node::FsNode;
-use crate::error::{ErrorWrapper, AppError};
+use crate::errorwrapper::ErrorWrapper;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use crate::ConvertibleResult;
 
-const MSG_DESCENDANT_ROOTS: &str = "roots cannot be direct descendants of each other";
+const MSG_DESCENDANT_ROOTS: &str = "";
+
+macro_rules! validate_roots {
+    ($roots_ref:expr, $index_name:literal) => {
+        {
+            if let Err(invalid_roots) = _validate_roots($roots_ref) {
+                let err_msg: String = format!("index '{}': invalid roots: {:?}\nroots cannot be direct descendants of each other", $index_name, invalid_roots);
+                let error = ErrorWrapper::AppError(AppError::WithMessage(err_msg));
+                log::error!("{}", error);
+                return Err(error);
+            }
+        }
+    }
+}
 
 pub fn run(args: &ArgMatches<'_>) -> ConvertibleResult<()> {
     let first_index = fetch_fs_nodes(args, "first-index")?;
@@ -18,14 +32,8 @@ pub fn run(args: &ArgMatches<'_>) -> ConvertibleResult<()> {
     let roots_a = roots(args, "root-a");
     let roots_b = roots(args, "root-b");
 
-    if let Err(invalid_roots) = validate_roots(&roots_a) {
-        eprintln!("comparator: index 'a': invalid roots: {:?}\n{}", invalid_roots, MSG_DESCENDANT_ROOTS);
-        return Err(ErrorWrapper::AppError(AppError::WithMessage(MSG_DESCENDANT_ROOTS)));
-    }
-    if let Err(invalid_roots) = validate_roots(&roots_a) {
-        eprintln!("comparator: index 'b': invalid roots: {:?}\n{}", invalid_roots, MSG_DESCENDANT_ROOTS);
-        return Err(ErrorWrapper::AppError(AppError::WithMessage(MSG_DESCENDANT_ROOTS)));
-    }
+    validate_roots!(&roots_a, "a");
+    validate_roots!(&roots_b, "b");
 
     let output_dir = args.value_of("directory").unwrap();
 
@@ -69,7 +77,7 @@ fn roots(args: &ArgMatches<'_>, arg_name: &str) -> Vec<String> {
     return roots;
 }
 
-fn validate_roots(roots: &Vec<String>) -> Result<(), HashSet<String>> {
+fn _validate_roots(roots: &Vec<String>) -> Result<(), HashSet<String>> {
     let mut invalid_roots: HashSet<String> = HashSet::new();
 
     for i in 0..roots.len() {

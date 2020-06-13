@@ -1,22 +1,35 @@
 #![warn(missing_debug_implementations, rust_2018_idioms, missing_docs)]
 
+mod apperror;
 mod consts;
 mod create_tables;
-mod error;
+mod errorwrapper;
 mod indexer;
 mod comparator;
 mod db_models;
 
 use clap::{App, Arg, AppSettings};
-use crate::error::ErrorWrapper;
+use crate::errorwrapper::ErrorWrapper;
 use indexer::fs_indexer;
 use std::env;
 use std::result;
+use flexi_logger;
 
 
 pub type ConvertibleResult<T, E = ErrorWrapper> = result::Result<T, E>;
 
 fn main() -> crate::ConvertibleResult<()> {
+
+    #[cfg(feature = "verbose")]
+    const LOGGING_LEVEL: &str = "magnetar = trace";
+    #[cfg(not(feature = "verbose"))]
+    const LOGGING_LEVEL: &str = "magnetar = debug";
+
+    flexi_logger::Logger::with_str(LOGGING_LEVEL)
+        .log_to_file()
+        .duplicate_to_stderr(flexi_logger::Duplicate::Warn)
+        .start()
+        .unwrap_or_else(|e| panic!("Logger initialization failed with {}", e));
 
     let subcmd_indexer = App::new("index")
         .about("Create index of chosen directories and store in a database file.")

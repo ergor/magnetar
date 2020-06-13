@@ -1,15 +1,7 @@
 
+use crate::apperror::AppError;
 use std::{io, time};
-
-/// An error type for all in-house funcs & methods.
-#[derive(Debug)]
-pub enum AppError {
-    /// For use when an `Option` was `None`, but `Some(a)` was expected.
-    /// Workaround until the `Try` trait becomes stable.
-    NoneError,
-
-    WithMessage(&'static str),
-}
+use std::fmt;
 
 /// An error type containing other error types, useful for convertible Result .
 #[derive(Debug)]
@@ -49,5 +41,18 @@ impl From<time::SystemTimeError> for ErrorWrapper {
 impl From<AppError> for ErrorWrapper {
     fn from(e: AppError) -> Self {
         ErrorWrapper::AppError(e)
+    }
+}
+
+impl fmt::Display for ErrorWrapper {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let buf: String = match self {
+            ErrorWrapper::Rusqlite(e) =>        { format!("{}", e) },
+            ErrorWrapper::Filesystem =>         { format!("filesystem error.") },
+            ErrorWrapper::IO(e) =>              { format!("{}", e) },
+            ErrorWrapper::SystemTimeError(e) => { format!("{}", e) },
+            ErrorWrapper::AppError(e) =>        { format!("{}", e) },
+        };
+        write!(f, "ErrorWrapper: {}", buf)
     }
 }
