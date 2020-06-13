@@ -1,5 +1,6 @@
 pub mod compare;
 pub mod comparison;
+mod fs_tree;
 pub mod virtual_fs_node;
 
 use clap;
@@ -40,6 +41,9 @@ pub fn run(args: &clap::ArgMatches<'_>) -> ConvertibleResult<()> {
     let pool_b = compare::make_pool(&second_index, roots_b)?;
 
     let comparisons = compare::compare(pool_a, pool_b);
+
+    fs_tree::make_tree(comparisons);
+
     Ok(())
 }
 

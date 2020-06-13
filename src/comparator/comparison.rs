@@ -1,5 +1,6 @@
 use crate::db_models::fs_node::FsNode;
 use std::panic::resume_unwind;
+use std::path::PathBuf;
 
 #[derive(Clone, Debug)]
 pub struct Comparison<'a> {
@@ -72,5 +73,13 @@ impl<'a> Comparison<'a> {
 
     pub fn set_b(&mut self, fs_node: &'a FsNode) {
         self.b = Some(fs_node);
+    }
+
+    pub fn virtual_path(&self) -> PathBuf {
+        PathBuf::from(&self.virtual_path)
+    }
+
+    pub fn virtual_path_clone(&self) -> String {
+        self.virtual_path.clone()
     }
 }

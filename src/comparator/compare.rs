@@ -18,8 +18,8 @@ const LI_FILE: &str = r#"<li>
                          </li>"#;
 
 const LI_DIR: &str = r#"<li class="collapse">
-                            <input type="checkbox" id="m${id}"/>
-                            <label for="m${id}">
+                            <input type="checkbox" id="${id}"/>
+                            <label for="${id}">
                                 ${directory-info}
                             </label>
                             <ul>
@@ -31,7 +31,7 @@ const LI_DIR: &str = r#"<li class="collapse">
 /// Creates a pool where the virtual nodes are sorted by path.
 pub fn make_pool(fs_nodes: &Vec<FsNode>, roots: Vec<String>) -> Result<BTreeMap<String, VirtualFsNode<'_>>, AppError> {
 
-    log::trace!("start...");0
+    log::trace!("start...");
 
     let relevant: Vec<(String, &FsNode)> = filter_by_roots(fs_nodes, roots);
 
@@ -62,7 +62,7 @@ pub fn make_pool(fs_nodes: &Vec<FsNode>, roots: Vec<String>) -> Result<BTreeMap<
 
 /// for each pool, the virtual path must be unique.
 /// **pool_a** is defined as the old index, and **pool_b** is the new.
-pub fn compare<'a>(pool_a: BTreeMap<String, VirtualFsNode<'a>>, pool_b: BTreeMap<String, VirtualFsNode<'a>>) -> Vec<Comparison<'a>> {
+pub fn compare<'a>(pool_a: BTreeMap<String, VirtualFsNode<'a>>, pool_b: BTreeMap<String, VirtualFsNode<'a>>) -> BTreeMap<String, Comparison<'a>> {
     let html = include_str!("report.html");
     let generated = html.replace("${tree-nodes}", "");
 
@@ -91,17 +91,17 @@ pub fn compare<'a>(pool_a: BTreeMap<String, VirtualFsNode<'a>>, pool_b: BTreeMap
 
     assert_eq!(union.len(), deletions.len() + creations.len() + intersection.len());
 
-    let mut result = Vec::new();
+    let mut result: BTreeMap<String, Comparison<'a>> = BTreeMap::new();
 
     for v_path in union {
         if let Some(comparison) = deletions.remove(&v_path) {
-            result.push(comparison);
+            result.insert(v_path, comparison);
         }
         else if let Some(comparison) = creations.remove(&v_path) {
-            result.push(comparison);
+            result.insert(v_path, comparison);
         }
         else if let Some(comparison) = intersection.remove(&v_path) {
-            result.push(comparison);
+            result.insert(v_path, comparison);
         }
         else {
             unreachable!("compare.rs: compare: if-block exhausted");
