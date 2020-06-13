@@ -1,5 +1,5 @@
 use crate::db_models::fs_node::{FsNode, NodeType};
-use crate::error;
+use crate::error::{ErrorWrapper, AppError};
 use std::fs;
 use std::io::{Read};
 use std::io;
@@ -55,7 +55,7 @@ fn process_dir_entry(entry: io::Result<fs::DirEntry>, read_buf: &mut [u8]) -> cr
 
     match entry.file_name().to_str() { // TODO: rewrite using the ?-operator when the Try trait becomes stable
         Some(file_name) => fs_node.name = String::from(file_name),
-        None => return Err(error::ErrorWrapper::NoneError),
+        None => return Err(ErrorWrapper::AppError(AppError::NoneError)),
     };
 
     fs_node.size = metadata.len() as i64;
@@ -81,7 +81,7 @@ fn process_dir_entry(entry: io::Result<fs::DirEntry>, read_buf: &mut [u8]) -> cr
     if let NodeType::Symlink = fs_node.node_type {
         match fs::read_link(entry.path())?.to_str() { // TODO: rewrite using the ?-operator when the Try trait becomes stable
             Some(path_str) => fs_node.links_to = String::from(path_str),
-            None => return Err(error::ErrorWrapper::NoneError),
+            None => return Err(ErrorWrapper::AppError(AppError::NoneError)),
         }
     }
 

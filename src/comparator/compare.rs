@@ -6,6 +6,7 @@ use std::fs::read;
 use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
 use crate::comparator::virtual_fs_node::VirtualFsNode;
+use crate::error::AppError;
 
 const LI_FILE: &str = r#"<li>
                              <table>
@@ -28,7 +29,7 @@ const LI_DIR: &str = r#"<li class="collapse">
 
 
 /// Creates a pool where the virtual nodes are sorted by path.
-pub fn make_pool(fs_nodes: &Vec<FsNode>, roots: Vec<String>) -> Result<BTreeMap<String, VirtualFsNode>, &'static str> {
+pub fn make_pool(fs_nodes: &Vec<FsNode>, roots: Vec<String>) -> Result<BTreeMap<String, VirtualFsNode>, AppError> {
     #[cfg(feature = "verbose")]
     println!("make_pool: start...");
 
@@ -46,7 +47,7 @@ pub fn make_pool(fs_nodes: &Vec<FsNode>, roots: Vec<String>) -> Result<BTreeMap<
             #[cfg(feature = "verbose")]
             println!("make_pool: Err");
 
-            return Err("compare.rs: make_pool: duplicate virtual path for the given roots.");
+            return Err(AppError::WithMessage("compare.rs: make_pool: duplicate virtual path for the given roots."));
         }
         v_node_map.insert(virtual_node.virtual_path.clone(), virtual_node);
     }

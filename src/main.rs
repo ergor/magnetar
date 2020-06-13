@@ -8,12 +8,13 @@ mod comparator;
 mod db_models;
 
 use clap::{App, Arg, AppSettings};
+use crate::error::ErrorWrapper;
 use indexer::fs_indexer;
 use std::env;
 use std::result;
 
 
-pub type ConvertibleResult<T, E = crate::error::ErrorWrapper> = result::Result<T, E>;
+pub type ConvertibleResult<T, E = ErrorWrapper> = result::Result<T, E>;
 
 fn main() -> crate::ConvertibleResult<()> {
 

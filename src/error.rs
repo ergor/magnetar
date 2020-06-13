@@ -1,15 +1,24 @@
 
 use std::{io, time};
 
+/// An error type for all in-house funcs & methods.
+#[derive(Debug)]
+pub enum AppError {
+    /// For use when an `Option` was `None`, but `Some(a)` was expected.
+    /// Workaround until the `Try` trait becomes stable.
+    NoneError,
+
+    WithMessage(&'static str),
+}
+
 /// An error type containing other error types, useful for convertible Result .
 #[derive(Debug)]
 pub enum ErrorWrapper {
     Rusqlite(rusqlite::Error),
     Filesystem,
     IO(io::Error),
-    NoneError,
     SystemTimeError(time::SystemTimeError),
-    WithMessage(&'static str),
+    AppError(AppError),
 }
 
 impl From<rusqlite::Error> for ErrorWrapper {
@@ -37,8 +46,8 @@ impl From<time::SystemTimeError> for ErrorWrapper {
     }
 }
 
-impl From<&'static str> for ErrorWrapper {
-    fn from(msg: &'static str) -> Self {
-        ErrorWrapper::WithMessage(msg)
+impl From<AppError> for ErrorWrapper {
+    fn from(e: AppError) -> Self {
+        ErrorWrapper::AppError(e)
     }
 }
