@@ -19,6 +19,10 @@ use indexer::fs_indexer;
 use std::env;
 use std::result;
 use flexi_logger;
+use log::LevelFilter;
+
+const LOGGING_LEVEL_VERBOSE: &str = "magnetar = trace";
+const LOGGING_LEVEL_DEFAULT: &str = "magnetar = debug";
 
 /// A `Result` type that uses [ErrorWrapper]() as error type, which implements the [From]() trait
 /// on every error type used in this program.
@@ -26,12 +30,7 @@ pub type ConvertibleResult<T, E = ErrorWrapper> = result::Result<T, E>;
 
 fn main() -> crate::ConvertibleResult<()> {
 
-    #[cfg(feature = "verbose")]
-    const LOGGING_LEVEL: &str = "magnetar = trace";
-    #[cfg(not(feature = "verbose"))]
-    const LOGGING_LEVEL: &str = "magnetar = debug";
-
-    flexi_logger::Logger::with_str(LOGGING_LEVEL)
+    let mut log_handle = flexi_logger::Logger::with_str(LOGGING_LEVEL_DEFAULT)
         .log_to_file()
         .directory("logs")
         .duplicate_to_stderr(flexi_logger::Duplicate::Warn)
@@ -41,10 +40,19 @@ fn main() -> crate::ConvertibleResult<()> {
     let args = App::new(consts::PROGRAM_NAME)
         .version(clap::crate_version!())
         .about("Filesystem indexer for archival management")
+        .arg(clap::Arg::with_name("verbose")
+            .short("v")
+            .long("verbose")
+            .help("Enables verbose logging")
+            .takes_value(false))
         .subcommand(indexer::cmdline())
         .subcommand(comparator::cmdline())
         .subcommand(dupes::cmdline())
         .get_matches();
+
+    if args.is_present("verbose") {
+        log_handle.parse_new_spec(LOGGING_LEVEL_VERBOSE);
+    }
 
     if let Some(args) = args.subcommand_matches("index") {
         indexer::run(args)?;

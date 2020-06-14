@@ -12,12 +12,17 @@ const READ_BUF_SZ: usize = 1024 * 1024;
 /// Assumes you won't run this function twice on the same path.
 /// I.e., you must ensure the paths you put in here are NOT subdirs of eachother.
 pub fn index(dir_path: &str) -> io::Result<Vec<FsNode>> {
-    let mut fs_nodes = Vec::new();
+    let mut fs_nodes: Vec<FsNode> = Vec::new();
     let mut read_buf = [0 as u8; READ_BUF_SZ];
 
     let nodes = fs::read_dir(dir_path)?;
 
     for node in nodes {
+        let node = node?;
+        if node.file_type()?.is_dir() {
+            let children = index(node.path().to_str().unwrap())?;
+            children.into_iter().for_each(|n| fs_nodes.push(n));
+        }
         match process_dir_entry(node, &mut read_buf) {
             Ok(fs_node) => {
                 fs_nodes.push(fs_node);
@@ -31,8 +36,7 @@ pub fn index(dir_path: &str) -> io::Result<Vec<FsNode>> {
     Ok(fs_nodes)
 }
 
-fn process_dir_entry(entry: io::Result<fs::DirEntry>, read_buf: &mut [u8]) -> crate::ConvertibleResult<FsNode> {
-    let entry = entry?;
+fn process_dir_entry(entry: fs::DirEntry, read_buf: &mut [u8]) -> crate::ConvertibleResult<FsNode> {
 
     if entry.path().is_relative() {
         panic!("TODO: convert relative paths to absolute paths");
