@@ -90,10 +90,7 @@ impl<'a> Delta<'a> {
             return DeltaType::Deletion;
         }
         else if let (Some(a), Some(b)) = (&self.a, &self.b) {
-            let field_deltas: Vec<String> = self.field_deltas().into_iter()
-                .filter_map(|(fd, s)| if self.field_delta_types.contains(&fd) { Some(s) } else { None })
-                .collect();
-
+            let field_deltas: Vec<String> = self.field_deltas();
             return
                 if field_deltas.is_empty() {
                     DeltaType::NoChange
@@ -135,44 +132,45 @@ impl<'a> Delta<'a> {
         }
     }
 
-    pub fn field_deltas(&self) -> HashMap<FieldDelta, String> {
-        let mut deltas = HashMap::new();
+    pub fn field_deltas(&self) -> Vec<String> {
+        let mut deltas = Vec::new();
 
         let aaa = &self.a.as_ref().expect("field_deltas must never be called on a creation or deletion delta").fs_node;
         let bbb = &self.b.as_ref().expect("field_deltas must never be called on a creation or deletion delta").fs_node;
 
-        if aaa.size != bbb.size {
-            deltas.insert(FieldDelta::Size, format!("size: {} -> {}", aaa.size, bbb.size));
+        // TODO: this is kinda ugly
+        if self.field_delta_types.contains(&FieldDelta::Size) && aaa.size != bbb.size {
+            deltas.push(format!("size: {} -> {}", aaa.size, bbb.size));
         }
-        if aaa.node_type != bbb.node_type {
-            deltas.insert(FieldDelta::NodeType, format!("type: {} -> {}", aaa.node_type, bbb.node_type));
+        if self.field_delta_types.contains(&FieldDelta::NodeType) && aaa.node_type != bbb.node_type {
+            deltas.push(format!("type: {} -> {}", aaa.node_type, bbb.node_type));
         }
-        if aaa.uid != bbb.uid {
-            deltas.insert(FieldDelta::User, format!("uid: {} -> {}", aaa.uid, bbb.uid));
+        if self.field_delta_types.contains(&FieldDelta::User) && aaa.uid != bbb.uid {
+            deltas.push(format!("uid: {} -> {}", aaa.uid, bbb.uid));
         }
-        if aaa.gid != bbb.gid {
-            deltas.insert(FieldDelta::Group, format!("gid: {} -> {}", aaa.gid, bbb.gid));
+        if self.field_delta_types.contains(&FieldDelta::Group) && aaa.gid != bbb.gid {
+            deltas.push(format!("gid: {} -> {}", aaa.gid, bbb.gid));
         }
-        if aaa.permissions != bbb.permissions {
-            deltas.insert(FieldDelta::Permissions, format!("perms: {} -> {}", aaa.permissions, bbb.permissions));
+        if self.field_delta_types.contains(&FieldDelta::Permissions) && aaa.permissions != bbb.permissions {
+            deltas.push(format!("perms: {} -> {}", aaa.permissions, bbb.permissions));
         }
-        if aaa.sha1_checksum != bbb.sha1_checksum {
-            deltas.insert(FieldDelta::Checksum, format!("sha1: {} -> {}", aaa.sha1_checksum, bbb.sha1_checksum));
+        if self.field_delta_types.contains(&FieldDelta::CreationDate) && aaa.creation_date != bbb.creation_date {
+            deltas.push(format!("date created: {} -> {}", aaa.creation_date, bbb.creation_date));
         }
-        if aaa.creation_date != bbb.creation_date {
-            deltas.insert(FieldDelta::CreationDate, format!("date created: {} -> {}", aaa.creation_date, bbb.creation_date));
+        if self.field_delta_types.contains(&FieldDelta::ModifiedDate) && aaa.modified_date != bbb.modified_date {
+            deltas.push(format!("date modified: {} -> {}", aaa.modified_date, bbb.modified_date));
         }
-        if aaa.modified_date != bbb.modified_date {
-            deltas.insert(FieldDelta::ModifiedDate, format!("date modified: {} -> {}", aaa.modified_date, bbb.modified_date));
+        if self.field_delta_types.contains(&FieldDelta::LinksTo) && aaa.links_to != bbb.links_to {
+            deltas.push(format!("symlink to: {} -> {}", aaa.links_to, bbb.links_to));
         }
-        if aaa.links_to != bbb.links_to {
-            deltas.insert(FieldDelta::LinksTo, format!("symlink to: {} -> {}", aaa.links_to, bbb.links_to));
+        if self.field_delta_types.contains(&FieldDelta::Checksum) && aaa.sha1_checksum != bbb.sha1_checksum {
+            deltas.push(format!("sha1: {} -> {}", aaa.sha1_checksum, bbb.sha1_checksum));
         }
-        if aaa.inode != bbb.inode {
-            deltas.insert(FieldDelta::Inode, format!("inode: {} -> {}", aaa.inode, bbb.inode));
+        if self.field_delta_types.contains(&FieldDelta::Inode) && aaa.inode != bbb.inode {
+            deltas.push(format!("inode: {} -> {}", aaa.inode, bbb.inode));
         }
-        if aaa.nlinks != bbb.nlinks {
-            deltas.insert(FieldDelta::NLinks, format!("hardlink count: {} -> {}", aaa.nlinks, bbb.nlinks));
+        if self.field_delta_types.contains(&FieldDelta::NLinks) && aaa.nlinks != bbb.nlinks {
+            deltas.push(format!("hardlink count: {} -> {}", aaa.nlinks, bbb.nlinks));
         }
 
         deltas
