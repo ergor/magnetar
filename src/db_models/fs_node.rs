@@ -1,5 +1,6 @@
-use std::fs;
+use std::{fs, fmt};
 use rusqlite::types::{FromSqlResult, ValueRef};
+use std::fmt::Display;
 
 ///
 /// sha1_checksum: 40 chars long
@@ -49,7 +50,7 @@ pub struct FsNode {
     //pub parent_id: i64, // fk: FsNode::id
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum NodeType {
     File,
     Directory,
@@ -82,6 +83,18 @@ impl NodeType {
 impl Default for NodeType {
     fn default() -> Self {
         NodeType::File
+    }
+}
+
+impl Display for NodeType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let val = match &self {
+            NodeType::File => { "file" },
+            NodeType::Directory => { "dir" },
+            NodeType::Symlink => { "symlink" },
+            NodeType::Other => { "(other)" },
+        };
+        write!(f, "{}", val)
     }
 }
 

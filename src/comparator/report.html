@@ -5,8 +5,11 @@
     <title>report - magnetar</title>
     <style>
         .table {
-            width: 100%;
+            min-width: 100%;
             border-collapse: collapse;
+            font-family: monospace, "Courier New", Courier, Monaco;
+            font-size: 9pt;
+            white-space: nowrap;
         }
         .table th {
             text-align: left;
@@ -18,6 +21,9 @@
             border-bottom-style: solid;
             border-bottom-width: 1px;
             padding-right: 10px;
+        }
+        .table td:last-child {
+            padding-right: 0;
         }
         .no-change {
         }
@@ -71,17 +77,17 @@
 <hr>
 <div>
     <table class="table">
+        <!--
         <colgroup>
             <col style="width: 20%">
             <col style="width: 50%">
-            <col style="width: 10%">
-            <col style="width: 20%">
+            <col style="width: 30%">
         </colgroup>
+        -->
         <tr>
             <th>root</th>
             <th>path</th>
-            <th>type</th>
-            <th>status</th>
+            <th>info</th>
         </tr>
         ${rows}
         <!-- sample rows

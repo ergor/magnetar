@@ -1,13 +1,13 @@
-use crate::comparator::delta::{Delta, DeltaType};
+use crate::comparator::delta::{Delta, DeltaType, FieldDelta};
 use std::io::Write;
 use std::io;
+use std::collections::HashSet;
 
 const TR: &str =
     r#"<tr class="${class}">
         <td>${root}</td>
         <td>${vpath}</td>
-        <td>${ftype}</td>
-        <td>${delta}</td>
+        <td>${info}</td>
     </tr>"#;
 
 
@@ -26,17 +26,13 @@ fn make_rows(deltas: &Vec<Delta<'_>>) -> String {
     let mut rows = String::new();
 
     for delta in deltas {
-        let css_class = match delta.delta_type() {
-            DeltaType::Creation => { "creation" },
-            DeltaType::Deletion => { "deletion" },
-            DeltaType::Modification => { "modification" },
-            DeltaType::NoChange => { "no-change" },
-        };
-        let mut row = TR.replace("${class}", css_class);
+        let mut row = TR.replace("${class}", delta.delta_type().css_class());
         row = row.replace("${root}", delta.root_path_str());
         row = row.replace("${vpath}", delta.virtual_path_str());
-        row = row.replace("${ftype}", "N/A");
-        row = row.replace("${delta}", "N/A");
+
+        let delta_info = delta.delta_info();
+        row = row.replace("${info}", delta_info.as_str());
+
         rows.push_str(row.as_str());
         rows.push_str("\n");
     }

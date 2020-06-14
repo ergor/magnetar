@@ -12,6 +12,7 @@ use crate::errorwrapper::ErrorWrapper;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::io;
+use crate::comparator::delta::FieldDelta;
 
 macro_rules! validate_roots {
     ($roots_ref:expr, $index_name:literal) => {
@@ -42,7 +43,9 @@ pub fn run(args: &clap::ArgMatches<'_>) -> ConvertibleResult<()> {
     let pool_a = compare::make_pool(&first_index,  roots_a)?;
     let pool_b = compare::make_pool(&second_index, roots_b)?;
 
-    let deltas = compare::compare(pool_a, pool_b);
+    // TODO: add a cmdline arg to specify field deltas.
+    let field_delta_types = FieldDelta::all();
+    let deltas = compare::compare(pool_a, pool_b, &field_delta_types);
 
     let output_stream = match args.value_of("directory") {
         None => { io::stdout() },
