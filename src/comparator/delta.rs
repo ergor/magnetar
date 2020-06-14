@@ -1,8 +1,10 @@
-use crate::db_models::fs_node::FsNode;
+use crate::db_models::fs_node::{FsNode, NodeType};
 use std::panic::resume_unwind;
 use std::path::PathBuf;
 use crate::comparator::virtual_fs_node::VirtualFsNode;
 use std::collections::{HashMap, HashSet};
+use std::time::SystemTime;
+use chrono::TimeZone;
 
 #[derive(Debug)]
 pub struct Delta<'a> {
@@ -121,6 +123,23 @@ impl<'a> Delta<'a> {
         unreachable!("both vfsnodes were None");
     }
 
+    pub fn file_type(&self) -> &str {
+        fn to_symbol(node_type: &NodeType) -> &str {
+            match node_type {
+                NodeType::File => {""},
+                NodeType::Directory => {"D"},
+                NodeType::Symlink => {"L"},
+                NodeType::Other => {"O"},
+            }
+        }
+        match self.delta_type {
+            DeltaType::Creation => { to_symbol(&self.b.as_ref().unwrap().fs_node.node_type) },
+            DeltaType::Deletion => { to_symbol(&self.a.as_ref().unwrap().fs_node.node_type) },
+            DeltaType::Modification(_) => { to_symbol(&self.b.as_ref().unwrap().fs_node.node_type) },
+            DeltaType::NoChange => { to_symbol(&self.a.as_ref().unwrap().fs_node.node_type) },
+        }
+    }
+
     pub fn delta_info(&self) -> String {
         match &self.delta_type {
             DeltaType::NoChange => { String::new() },
@@ -155,10 +174,14 @@ impl<'a> Delta<'a> {
             deltas.push(format!("perms: {} -> {}", aaa.permissions, bbb.permissions));
         }
         if self.field_delta_types.contains(&FieldDelta::CreationDate) && aaa.creation_date != bbb.creation_date {
-            deltas.push(format!("date created: {} -> {}", aaa.creation_date, bbb.creation_date));
+            let time_a = chrono::Local.timestamp(aaa.creation_date, 0);
+            let time_b = chrono::Local.timestamp(bbb.creation_date, 0);
+            deltas.push(format!("date created: {} -> {}", time_a.to_string(), time_b.to_string()));
         }
         if self.field_delta_types.contains(&FieldDelta::ModifiedDate) && aaa.modified_date != bbb.modified_date {
-            deltas.push(format!("date modified: {} -> {}", aaa.modified_date, bbb.modified_date));
+            let time_a = chrono::Local.timestamp(aaa.modified_date, 0);
+            let time_b = chrono::Local.timestamp(bbb.modified_date, 0);
+            deltas.push(format!("date modified: {} -> {}", time_a.to_string(), time_b.to_string()));
         }
         if self.field_delta_types.contains(&FieldDelta::LinksTo) && aaa.links_to != bbb.links_to {
             deltas.push(format!("symlink to: {} -> {}", aaa.links_to, bbb.links_to));

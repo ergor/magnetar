@@ -33,6 +33,11 @@ fn main() -> crate::ConvertibleResult<()> {
     let mut log_handle = flexi_logger::Logger::with_str(LOGGING_LEVEL_DEFAULT)
         .log_to_file()
         .directory("logs")
+        .rotate(
+            flexi_logger::Criterion::Size(1_000_000),
+            flexi_logger::Naming::Timestamps,
+            flexi_logger::Cleanup::KeepLogFiles(3)
+        )
         .duplicate_to_stderr(flexi_logger::Duplicate::Warn)
         .start()
         .unwrap_or_else(|e| panic!("Logger initialization failed with {}", e));

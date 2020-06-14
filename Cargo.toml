@@ -17,6 +17,8 @@ flexi_logger = "0.15.4"
 # for creating tree structures in memory (e.g. filesystem structure)
 #indextree = "4.0.0"
 
+chrono = "0.4.11"
+
 # command line argument parsing
 [dependencies.clap]
 version = "2.33.0"
