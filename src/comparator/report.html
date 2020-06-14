@@ -1,9 +1,21 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="fit_content">
 <head>
     <meta charset="UTF-8">
     <title>report - magnetar</title>
     <style>
+        #filter_section {
+            width: max-content;
+            border-bottom: black solid 2px;
+            border-right: black solid 2px;
+            border-collapse: collapse;
+            padding-right: 15px;
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+        }
+        .fit_content {
+            width: min-content;
+        }
         .table {
             min-width: 100%;
             border-collapse: collapse;
@@ -15,15 +27,18 @@
             text-align: left;
             border-bottom-style: solid;
             border-bottom-width: 2px;
-            padding-right: 10px;
+            padding-right: 20px;
         }
         .table td {
             border-bottom-style: solid;
             border-bottom-width: 1px;
-            padding-right: 10px;
+            padding-right: 20px;
         }
-        .table td:last-child {
-            padding-right: 0;
+        .table th:first-child {
+            padding-left: 20px;
+        }
+        .table td:first-child {
+            padding-left: 20px;
         }
         .no-change {
         }
@@ -38,7 +53,7 @@
         }
     </style>
 </head>
-<body>
+<body class="fit_content">
 <script>
     function setAll(className, state) {
         var elems = document.getElementsByClassName(className);
@@ -59,7 +74,7 @@
         setAll("deletion", !event.checked)
     }
 </script>
-<div>
+<div id="filter_section">
     <h4>Delta type filters</h4>
 
     <input checked type="checkbox" id="cb_no-change" onchange="onchangeCbNoChange(this)">
@@ -74,8 +89,8 @@
     <input checked type="checkbox" id="cb_deletion" onchange="onchangeCbDeletion(this)">
     <label for="cb_deletion">Deletion</label>
 </div>
-<hr>
-<div>
+
+<div class="fit_content">
     <table class="table">
         <!--
         <colgroup>
