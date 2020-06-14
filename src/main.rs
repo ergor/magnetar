@@ -33,6 +33,7 @@ fn main() -> crate::ConvertibleResult<()> {
 
     flexi_logger::Logger::with_str(LOGGING_LEVEL)
         .log_to_file()
+        .directory("logs")
         .duplicate_to_stderr(flexi_logger::Duplicate::Warn)
         .start()
         .unwrap_or_else(|e| panic!("Logger initialization failed with {}", e));

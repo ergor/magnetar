@@ -1,65 +1,77 @@
 <!DOCTYPE html>
-<!--
-collapsible tree skeleton file.
-from https://code-boxx.com/css-collapsible-tree-menu/#
--->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>report - magnetar</title>
     <style>
-        /* [COLLAPSIBLE] */
-        #tree label {
-            position: relative;
-            display: block;
+        .table {
             width: 100%;
-            cursor: pointer;
+            border-collapse: collapse;
         }
-        #tree input[type=checkbox] {
-            display: none; /* Hide ugly checkbox */
+        .table th {
+            text-align: left;
+            border-bottom-style: solid;
+            border-bottom-width: 2px;
+            padding-right: 10px;
         }
-
-        /* Hide/collapse by default */
-        li.collapse ul {
-            visibility: hidden;
-            opacity: 0;
-            max-height: 0; /* CSS bug. Cannot animate height... */
-            /*transition: all 0.5s;*/
-        }
-        label::after {
-            content: "\25b6";
-            position: absolute;
-            top: 0;
-            right: 0;
-            /*transition: all 0.5s;*/
-        }
-
-        /* Show when checked */
-        li.collapse input:checked ~ ul {
-            visibility: visible;
-            opacity: 1;
-            max-height: 999px; /* Just give a big enough height for animation */
-        }
-        li.collapse input:checked ~ label::after {
-            transform: rotate(90deg);
-        }
-
-        .creation {
-            background-color: aquamarine;
-        }
-        .deletion {
-            background-color: hotpink;
-        }
-        .modification {
-            background-color: cornflowerblue;
+        .table td {
+            border-bottom-style: solid;
+            border-bottom-width: 1px;
+            padding-right: 10px;
         }
         .no-change {
+        }
+        .modification {
+            background-color: lightskyblue;
+        }
+        .creation {
+            background-color: lightgreen;
+        }
+        .deletion {
+            background-color: pink;
         }
     </style>
 </head>
 <body>
-<ul id="tree">
-${tree-nodes}
-</ul>
+<table class="table">
+    <colgroup>
+        <col style="width: 20%">
+        <col style="width: 50%">
+        <col style="width: 10%">
+        <col style="width: 20%">
+    </colgroup>
+    <tr>
+        <th>root</th>
+        <th>path</th>
+        <th>type</th>
+        <th>status</th>
+    </tr>
+    <!-- sample rows
+    <tr class="no-change">
+        <td>/tmp</td>
+        <td>a</td>
+        <td>file</td>
+        <td>unchanged</td>
+    </tr>
+    <tr class="modification">
+        <td>/tmp</td>
+        <td>b</td>
+        <td>file</td>
+        <td>modified</td>
+    </tr>
+    <tr class="creation">
+        <td>/tmp</td>
+        <td>c</td>
+        <td>file</td>
+        <td>created</td>
+    </tr>
+    <tr class="deletion">
+        <td>/tmp</td>
+        <td>d</td>
+        <td>file</td>
+        <td>deleted</td>
+    </tr>
+    -->
+</table>
 </body>
 </html>

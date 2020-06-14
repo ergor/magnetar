@@ -1,7 +1,8 @@
-pub mod compare;
-pub mod comparison;
-mod fs_tree;
-pub mod virtual_fs_node;
+//mod fs_tree;
+mod compare;
+mod delta;
+mod report;
+mod virtual_fs_node;
 
 use clap;
 use crate::ConvertibleResult;
@@ -10,10 +11,12 @@ use crate::db_models::fs_node::FsNode;
 use crate::errorwrapper::ErrorWrapper;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
+use std::io;
 
 macro_rules! validate_roots {
     ($roots_ref:expr, $index_name:literal) => {
         {
+            log::debug!("validating roots: '{}'...", $index_name);
             if let Err(invalid_roots) = _validate_roots($roots_ref) {
                 let error = AppError::WithMessage(
                     format!("index '{}': invalid roots: {:?}\nroots cannot be direct descendants of each other", $index_name, invalid_roots)
@@ -21,6 +24,7 @@ macro_rules! validate_roots {
                 log::error!("{}", error);
                 return Err(ErrorWrapper::AppError(error));
             }
+            log::debug!("roots '{}' OK", $index_name);
         }
     }
 }
@@ -35,19 +39,24 @@ pub fn run(args: &clap::ArgMatches<'_>) -> ConvertibleResult<()> {
     validate_roots!(&roots_a, "a");
     validate_roots!(&roots_b, "b");
 
-    let output_dir = args.value_of("directory").unwrap();
-
     let pool_a = compare::make_pool(&first_index,  roots_a)?;
     let pool_b = compare::make_pool(&second_index, roots_b)?;
 
-    let comparisons = compare::compare(pool_a, pool_b);
+    let deltas = compare::compare(pool_a, pool_b);
 
-    fs_tree::make_tree(comparisons);
+    let output_stream = match args.value_of("directory") {
+        None => { io::stdout() },
+        Some(dir) => { unimplemented!("writing to file not implemented") },
+    };
+
+    report::write(output_stream, deltas)?;
 
     Ok(())
 }
 
 fn fetch_fs_nodes(args: &clap::ArgMatches<'_>, arg_name: &str) -> crate::ConvertibleResult<Vec<FsNode>> {
+    log::debug!("fetching fs_nodes for '{}'", arg_name);
+
     let index_db_path = Path::new(args.value_of(arg_name).unwrap());
     if !index_db_path.exists() {
         let error = AppError::WithMessage(
@@ -60,15 +69,18 @@ fn fetch_fs_nodes(args: &clap::ArgMatches<'_>, arg_name: &str) -> crate::Convert
     let mut fs_nodes = Vec::new();
     { // open for db work
         let conn = rusqlite::Connection::open(index_db_path)?;
-        for fs_node in FsNode::select(&conn)? {
-            fs_nodes.push(fs_node);
-        }
+        log::debug!("{}: database connection opened", index_db_path.to_string_lossy().as_ref());
+        std::mem::drop(fs_nodes);
+        fs_nodes = FsNode::select(&conn)?;
+        log::debug!("{}: retrieved {} rows.", index_db_path.to_string_lossy().as_ref(), fs_nodes.len());
     } // drops all db connections
+    log::debug!("{}: database connection closed", index_db_path.to_string_lossy().as_ref());
 
     Ok(fs_nodes)
 }
 
 fn roots(args: &clap::ArgMatches<'_>, arg_name: &str) -> Vec<String> {
+    log::debug!("collecting roots for '{}'...", arg_name);
     let mut roots = Vec::new();
     match args.values_of(arg_name) {
         None => {
@@ -80,6 +92,7 @@ fn roots(args: &clap::ArgMatches<'_>, arg_name: &str) -> Vec<String> {
             }
         }
     }
+    log::debug!("found {} roots", roots.len());
     return roots;
 }
 
@@ -123,7 +136,7 @@ pub fn cmdline<'a>() -> clap::App<'a, 'a> {
             .long("output-dir")
             .value_name("DIRECTORY")
             .help("The directory to store the generated comparison report in.")
-            .required(true))
+            .required(false))
         .arg(clap::Arg::with_name("root-a")
             .long("root-a")
             .value_name("ROOT")
