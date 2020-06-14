@@ -33,45 +33,84 @@
     </style>
 </head>
 <body>
-<table class="table">
-    <colgroup>
-        <col style="width: 20%">
-        <col style="width: 50%">
-        <col style="width: 10%">
-        <col style="width: 20%">
-    </colgroup>
-    <tr>
-        <th>root</th>
-        <th>path</th>
-        <th>type</th>
-        <th>status</th>
-    </tr>
-    <!-- sample rows
-    <tr class="no-change">
-        <td>/tmp</td>
-        <td>a</td>
-        <td>file</td>
-        <td>unchanged</td>
-    </tr>
-    <tr class="modification">
-        <td>/tmp</td>
-        <td>b</td>
-        <td>file</td>
-        <td>modified</td>
-    </tr>
-    <tr class="creation">
-        <td>/tmp</td>
-        <td>c</td>
-        <td>file</td>
-        <td>created</td>
-    </tr>
-    <tr class="deletion">
-        <td>/tmp</td>
-        <td>d</td>
-        <td>file</td>
-        <td>deleted</td>
-    </tr>
-    -->
-</table>
+<script>
+    function setAll(className, state) {
+        var elems = document.getElementsByClassName(className);
+        for (elem of elems) {
+            elem.hidden = !!state;
+        }
+    }
+    function onchangeCbNoChange(event) {
+        setAll("no-change", !event.checked)
+    }
+    function onchangeCbModification(event) {
+        setAll("modification", !event.checked)
+    }
+    function onchangeCbCreation(event) {
+        setAll("creation", !event.checked)
+    }
+    function onchangeCbDeletion(event) {
+        setAll("deletion", !event.checked)
+    }
+</script>
+<div>
+    <h4>Delta type filters</h4>
+
+    <input checked type="checkbox" id="cb_no-change" onchange="onchangeCbNoChange(this)">
+    <label for="cb_no-change">No change</label>
+
+    <input checked type="checkbox" id="cb_modified" onchange="onchangeCbModification(this)">
+    <label for="cb_modified">Modification</label>
+
+    <input checked type="checkbox" id="cb_creation" onchange="onchangeCbCreation(this)">
+    <label for="cb_creation">Creation</label>
+
+    <input checked type="checkbox" id="cb_deletion" onchange="onchangeCbDeletion(this)">
+    <label for="cb_deletion">Deletion</label>
+</div>
+<hr>
+<div>
+    <table class="table">
+        <colgroup>
+            <col style="width: 20%">
+            <col style="width: 50%">
+            <col style="width: 10%">
+            <col style="width: 20%">
+        </colgroup>
+        <tr>
+            <th>root</th>
+            <th>path</th>
+            <th>type</th>
+            <th>status</th>
+        </tr>
+        ${rows}
+        <!-- sample rows
+        <tr class="no-change">
+            <td>/tmp</td>
+            <td>a</td>
+            <td>file</td>
+            <td>unchanged</td>
+        </tr>
+        <tr class="modification">
+            <td>/tmp</td>
+            <td>b</td>
+            <td>file</td>
+            <td>modified</td>
+        </tr>
+        <tr class="creation">
+            <td>/tmp</td>
+            <td>c</td>
+            <td>file</td>
+            <td>created</td>
+        </tr>
+        <tr class="deletion">
+            <td>/tmp</td>
+            <td>d</td>
+            <td>file</td>
+            <td>deleted</td>
+        </tr>
+        -->
+    </table>
+</div>
 </body>
 </html>

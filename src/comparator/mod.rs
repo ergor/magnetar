@@ -24,7 +24,7 @@ macro_rules! validate_roots {
                 log::error!("{}", error);
                 return Err(ErrorWrapper::AppError(error));
             }
-            log::debug!("roots '{}' OK", $index_name);
+            log::debug!("roots '{}' OK: {:?}", $index_name, $roots_ref);
         }
     }
 }

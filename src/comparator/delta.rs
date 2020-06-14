@@ -57,4 +57,24 @@ impl<'a> Delta<'a> {
         }
         unreachable!("comparison: delta_type exhausted");
     }
+
+    pub fn root_path_str(&self) -> &str {
+        if let Some(vnode) = &self.a {
+            return vnode.root.as_str();
+        }
+        if let Some(vnode) = &self.b {
+            return vnode.root.as_str();
+        }
+        unreachable!("both vfsnodes were None");
+    }
+
+    pub fn virtual_path_str(&self) -> &str {
+        if let Some(vnode) = &self.a {
+            return vnode.virtual_path.as_str();
+        }
+        if let Some(vnode) = &self.b {
+            return vnode.virtual_path.as_str();
+        }
+        unreachable!("both vfsnodes were None");
+    }
 }
