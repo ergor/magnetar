@@ -5,7 +5,7 @@ use std::fs;
 use std::io::{Read};
 use std::io;
 use std::os::linux::fs::MetadataExt;
-use std::time::SystemTime;
+use std::time::{SystemTime, Instant};
 
 const READ_BUF_SZ: usize = 1024 * 1024;
 
@@ -14,6 +14,9 @@ const READ_BUF_SZ: usize = 1024 * 1024;
 pub fn index(dir_path: &str) -> io::Result<Vec<FsNode>> {
     let mut fs_nodes: Vec<FsNode> = Vec::new();
     let mut read_buf = [0 as u8; READ_BUF_SZ];
+
+    let start_time = Instant::now();
+    log::debug!("{}: indexing files in directory...", dir_path);
 
     let nodes = fs::read_dir(dir_path)?;
 
@@ -33,6 +36,8 @@ pub fn index(dir_path: &str) -> io::Result<Vec<FsNode>> {
         }
     }
 
+    log::debug!("{}: directory indexing done. time elapsed: {} ms.", dir_path, start_time.elapsed().as_millis());
+
     Ok(fs_nodes)
 }
 
@@ -41,6 +46,9 @@ fn process_dir_entry(entry: fs::DirEntry, read_buf: &mut [u8]) -> crate::Convert
     if entry.path().is_relative() {
         panic!("TODO: convert relative paths to absolute paths");
     }
+
+    let start_time = Instant::now();
+    log::trace!("{}: indexing...", entry.path().to_str().unwrap_or("(unwrap error)"));
 
     let file_type = entry.file_type()?;
     let metadata = entry.metadata()?;
@@ -101,10 +109,16 @@ fn process_dir_entry(entry: fs::DirEntry, read_buf: &mut [u8]) -> crate::Convert
     fs_node.nlinks = metadata.st_nlink() as i64;
     // TODO: parent id
 
+    log::trace!("{}: indexing of file done. time elapsed: {} ms.", entry.path().to_str().unwrap_or("(unwrap error)"), start_time.elapsed().as_millis());
+
     Ok(fs_node)
 }
 
 fn checksum(read_buf: &mut [u8], file_entry: &fs::DirEntry) -> io::Result<String> {
+
+    let start_time = Instant::now();
+    log::trace!("{}: calculating sha1 checksum...", file_entry.path().to_str().unwrap_or("(unwrap error)"));
+
     let mut file = fs::File::open(file_entry.path())?;
     let mut sha1digest = sha1::Sha1::new();
 
@@ -116,6 +130,8 @@ fn checksum(read_buf: &mut [u8], file_entry: &fs::DirEntry) -> io::Result<String
             break;
         }
     }
+
+    log::trace!("{}: sha1 checksum calculated. time elapsed: {} ms.", file_entry.path().to_str().unwrap_or("(unwrap error)"), start_time.elapsed().as_millis());
 
     Ok(sha1digest.digest().to_string())
 }
