@@ -6,34 +6,73 @@ use std::io::{Read};
 use std::io;
 use std::os::linux::fs::MetadataExt;
 use std::time::{SystemTime, Instant};
+use std::fs::{DirEntry, ReadDir};
+use std::cell::{Cell, RefCell, RefMut};
+use std::borrow::Borrow;
 
 const READ_BUF_SZ: usize = 1024 * 1024;
 
 /// Assumes you won't run this function twice on the same path.
 /// I.e., you must ensure the paths you put in here are NOT subdirs of eachother.
-pub fn index(dir_path: &str, cpu_count: usize) -> io::Result<Vec<FsNode>> {
+pub fn depth_first_indexer(dir_path: &str, cpu_count: usize) -> io::Result<Vec<FsNode>> {
     let mut fs_nodes: Vec<FsNode> = Vec::new();
     let mut read_buf = [0 as u8; READ_BUF_SZ];
+    let mut dir_iter_stack: Vec<RefCell<ReadDir>> = Vec::new();
 
     let start_time = Instant::now();
     log::debug!("{}: indexing files in directory...", dir_path);
 
-    let dir_entries = fs::read_dir(dir_path)?;
+    let root_level_entries = fs::read_dir(dir_path)?;
+    dir_iter_stack.push(RefCell::new(root_level_entries));
 
-    for dir_entry in dir_entries {
-        let dir_entry = dir_entry?;
-        if dir_entry.file_type()?.is_dir() {
-            let children = index(dir_entry.path().to_str().unwrap(), cpu_count)?;
-            children.into_iter().for_each(|n| fs_nodes.push(n));
-        }
-        match process_dir_entry(dir_entry, &mut read_buf) {
-            Ok(fs_node) => {
-                fs_nodes.push(fs_node);
+    while !dir_iter_stack.is_empty() {
+        // if let Some(current_dir_iter) = dir_iter_stack.borrow().iter().peekable().peek() {
+        //     if let Some(dir_entry_result) = current_dir_iter.borrow_mut().next() {
+        //         let dir_entry = dir_entry_result?;
+        //         log::trace!("DFS at '{}'", dir_entry.path().to_str().unwrap());
+        //         if dir_entry.file_type()?.is_dir() {
+        //             dir_iter_stack.borrow_mut().push(
+        //                 RefCell::new(fs::read_dir(dir_entry.path())?)
+        //             );
+        //         }
+        //     }
+        // }
+        // else {
+        //     dir_iter_stack.borrow_mut().pop();
+        // }
+
+
+        let current_iter_opt = dir_iter_stack.last();
+        if current_iter_opt.is_some() {
+            let mut current_dir_iter = current_iter_opt.unwrap();
+            let dir_entry_opt = current_dir_iter.borrow_mut().next();
+            if dir_entry_opt.is_some() {
+                let dir_entry = dir_entry_opt.unwrap()?;
+                log::trace!("DFS at '{}'", dir_entry.path().to_str().unwrap());
+                if dir_entry.file_type()?.is_dir() {
+                    dir_iter_stack.push(
+                        RefCell::new(fs::read_dir(dir_entry.path())?)
+                    );
+                }
             }
-            Err(e) => {
-                log::error!("could not read file info: {}", e);
-            },
+            else {
+                dir_iter_stack.pop();
+            }
         }
+
+        // let dir_entry = dir_entry?;
+        // if dir_entry.file_type()?.is_dir() {
+        //     let children = index(dir_entry.path().to_str().unwrap(), cpu_count)?;
+        //     children.into_iter().for_each(|n| fs_nodes.push(n));
+        // }
+        // match process_dir_entry(dir_entry, &mut read_buf) {
+        //     Ok(fs_node) => {
+        //         fs_nodes.push(fs_node);
+        //     }
+        //     Err(e) => {
+        //         log::error!("could not read file info: {}", e);
+        //     },
+        // }
     }
 
     log::debug!("{}: directory indexing done. time elapsed: {} ms.", dir_path, start_time.elapsed().as_millis());
@@ -41,7 +80,7 @@ pub fn index(dir_path: &str, cpu_count: usize) -> io::Result<Vec<FsNode>> {
     Ok(fs_nodes)
 }
 
-fn process_dir_entry(entry: fs::DirEntry, read_buf: &mut [u8]) -> crate::ConvertibleResult<FsNode> {
+fn process_single_dir_entry(entry: fs::DirEntry, read_buf: &mut [u8]) -> crate::ConvertibleResult<FsNode> {
 
     if entry.path().is_relative() {
         panic!("TODO: convert relative paths to absolute paths");

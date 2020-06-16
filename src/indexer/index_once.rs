@@ -9,8 +9,8 @@ pub fn start(db_path: &str, directories: clap::Values<'_>, cpu_count: usize, for
     log::debug!("{}: open OK; tables initialized", db_path);
 
     for dir in directories {
-        log::debug!("{}: indexing recursively...", dir);
-        match fs_indexer::index(dir, cpu_count) {
+        log::debug!("{}: indexing depth first...", dir);
+        match fs_indexer::depth_first_indexer(dir, cpu_count) {
             Ok(fs_nodes) => {
                 log::debug!("{}: indexing done, inserting into database...", dir);
                 for fs_node in fs_nodes {
