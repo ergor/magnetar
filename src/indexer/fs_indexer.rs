@@ -26,39 +26,21 @@ pub fn depth_first_indexer(dir_path: &str, cpu_count: usize) -> io::Result<Vec<F
     dir_iter_stack.push(RefCell::new(root_level_entries));
 
     while !dir_iter_stack.is_empty() {
-        // if let Some(current_dir_iter) = dir_iter_stack.borrow().iter().peekable().peek() {
-        //     if let Some(dir_entry_result) = current_dir_iter.borrow_mut().next() {
-        //         let dir_entry = dir_entry_result?;
-        //         log::trace!("DFS at '{}'", dir_entry.path().to_str().unwrap());
-        //         if dir_entry.file_type()?.is_dir() {
-        //             dir_iter_stack.borrow_mut().push(
-        //                 RefCell::new(fs::read_dir(dir_entry.path())?)
-        //             );
-        //         }
-        //     }
-        // }
-        // else {
-        //     dir_iter_stack.borrow_mut().pop();
-        // }
-
-
-        let current_iter_opt = dir_iter_stack.last();
-        if current_iter_opt.is_some() {
-            let mut current_dir_iter = current_iter_opt.unwrap();
-            let dir_entry_opt = current_dir_iter.borrow_mut().next();
-            if dir_entry_opt.is_some() {
-                let dir_entry = dir_entry_opt.unwrap()?;
-                log::trace!("DFS at '{}'", dir_entry.path().to_str().unwrap());
-                if dir_entry.file_type()?.is_dir() {
-                    dir_iter_stack.push(
-                        RefCell::new(fs::read_dir(dir_entry.path())?)
-                    );
-                }
-            }
-            else {
-                dir_iter_stack.pop();
+        let current_dir_iter = dir_iter_stack.last().unwrap(); // we know it's Some, because of loop condition
+        let dir_entry_opt = current_dir_iter.borrow_mut().next();
+        if dir_entry_opt.is_some() {
+            let dir_entry = dir_entry_opt.unwrap()?;
+            log::trace!("DFS at '{}'", dir_entry.path().to_str().unwrap());
+            if dir_entry.file_type()?.is_dir() {
+                dir_iter_stack.push(
+                    RefCell::new(fs::read_dir(dir_entry.path())?)
+                );
             }
         }
+        else {
+            dir_iter_stack.pop();
+        }
+
 
         // let dir_entry = dir_entry?;
         // if dir_entry.file_type()?.is_dir() {
