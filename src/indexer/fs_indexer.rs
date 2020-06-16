@@ -11,22 +11,22 @@ const READ_BUF_SZ: usize = 1024 * 1024;
 
 /// Assumes you won't run this function twice on the same path.
 /// I.e., you must ensure the paths you put in here are NOT subdirs of eachother.
-pub fn index(dir_path: &str) -> io::Result<Vec<FsNode>> {
+pub fn index(dir_path: &str, cpu_count: usize) -> io::Result<Vec<FsNode>> {
     let mut fs_nodes: Vec<FsNode> = Vec::new();
     let mut read_buf = [0 as u8; READ_BUF_SZ];
 
     let start_time = Instant::now();
     log::debug!("{}: indexing files in directory...", dir_path);
 
-    let nodes = fs::read_dir(dir_path)?;
+    let dir_entries = fs::read_dir(dir_path)?;
 
-    for node in nodes {
-        let node = node?;
-        if node.file_type()?.is_dir() {
-            let children = index(node.path().to_str().unwrap())?;
+    for dir_entry in dir_entries {
+        let dir_entry = dir_entry?;
+        if dir_entry.file_type()?.is_dir() {
+            let children = index(dir_entry.path().to_str().unwrap(), cpu_count)?;
             children.into_iter().for_each(|n| fs_nodes.push(n));
         }
-        match process_dir_entry(node, &mut read_buf) {
+        match process_dir_entry(dir_entry, &mut read_buf) {
             Ok(fs_node) => {
                 fs_nodes.push(fs_node);
             }

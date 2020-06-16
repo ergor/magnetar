@@ -1,6 +1,6 @@
 use crate::{create_tables, fs_indexer, consts};
 
-pub fn start(db_path: &str, directories: clap::Values<'_>, force: bool) -> crate::ConvertibleResult<()> {
+pub fn start(db_path: &str, directories: clap::Values<'_>, cpu_count: usize, force: bool) -> crate::ConvertibleResult<()> {
 
     log::debug!("index_once.start: begin...");
     log::debug!("{}: opening connection to database...", db_path);
@@ -10,7 +10,7 @@ pub fn start(db_path: &str, directories: clap::Values<'_>, force: bool) -> crate
 
     for dir in directories {
         log::debug!("{}: indexing recursively...", dir);
-        match fs_indexer::index(dir) {
+        match fs_indexer::index(dir, cpu_count) {
             Ok(fs_nodes) => {
                 log::debug!("{}: indexing done, inserting into database...", dir);
                 for fs_node in fs_nodes {
