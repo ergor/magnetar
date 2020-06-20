@@ -54,8 +54,8 @@ fn main() -> crate::ConvertibleResult<()> {
                 LOGGING_LEVEL_DEFAULT
             } // TODO: 2 logging levels: default, verbose, 2x verbose
         )
-        .format_for_stderr(flexi_logger::colored_detailed_format)
-        .format_for_files(flexi_logger::detailed_format);
+        .format_for_stderr(flexi_logger::colored_default_format)
+        .format_for_files(flexi_logger::default_format);
 
     if args.is_present("logfile") {
             logger

@@ -22,16 +22,26 @@ pub fn depth_first_indexer(dir_path: &str, cpu_count: usize) -> io::Result<Vec<F
     let start_time = Instant::now();
     log::debug!("{}: indexing files in directory...", dir_path);
 
-    let root_level_entries = fs::read_dir(dir_path)?;
-    dir_iter_stack.push(RefCell::new(root_level_entries));
+    let root_level_entries_iter = fs::read_dir(dir_path)?;
+    dir_iter_stack.push(RefCell::new(root_level_entries_iter));
 
     while !dir_iter_stack.is_empty() {
         let current_dir_iter = dir_iter_stack.last().unwrap(); // we know it's Some, because of loop condition
-        let dir_entry_opt = current_dir_iter.borrow_mut().next();
-        if dir_entry_opt.is_some() {
-            let dir_entry = dir_entry_opt.unwrap()?;
-            log::trace!("DFS at '{}'", dir_entry.path().to_str().unwrap());
+        let dir_iter_next = current_dir_iter.borrow_mut().next();
+        if dir_iter_next.is_some() {
+            let dir_entry: DirEntry = dir_iter_next.unwrap()?;
+
+            match process_single_dir_entry(&dir_entry, &mut read_buf) {
+                Ok(fs_node) => {
+                    fs_nodes.push(fs_node);
+                }
+                Err(e) => {
+                    log::error!("could not read file info: {}", e);
+                },
+            }
+
             if dir_entry.file_type()?.is_dir() {
+                log::debug!("{}: indexing files in directory...", dir_entry.path().to_str().unwrap_or("(unwrap error)"));
                 dir_iter_stack.push(
                     RefCell::new(fs::read_dir(dir_entry.path())?)
                 );
@@ -40,21 +50,6 @@ pub fn depth_first_indexer(dir_path: &str, cpu_count: usize) -> io::Result<Vec<F
         else {
             dir_iter_stack.pop();
         }
-
-
-        // let dir_entry = dir_entry?;
-        // if dir_entry.file_type()?.is_dir() {
-        //     let children = index(dir_entry.path().to_str().unwrap(), cpu_count)?;
-        //     children.into_iter().for_each(|n| fs_nodes.push(n));
-        // }
-        // match process_dir_entry(dir_entry, &mut read_buf) {
-        //     Ok(fs_node) => {
-        //         fs_nodes.push(fs_node);
-        //     }
-        //     Err(e) => {
-        //         log::error!("could not read file info: {}", e);
-        //     },
-        // }
     }
 
     log::debug!("{}: directory indexing done. time elapsed: {} ms.", dir_path, start_time.elapsed().as_millis());
@@ -62,14 +57,14 @@ pub fn depth_first_indexer(dir_path: &str, cpu_count: usize) -> io::Result<Vec<F
     Ok(fs_nodes)
 }
 
-fn process_single_dir_entry(entry: fs::DirEntry, read_buf: &mut [u8]) -> crate::ConvertibleResult<FsNode> {
+fn process_single_dir_entry(entry: &fs::DirEntry, read_buf: &mut [u8]) -> crate::ConvertibleResult<FsNode> {
 
     if entry.path().is_relative() {
         panic!("TODO: convert relative paths to absolute paths");
     }
 
     let start_time = Instant::now();
-    log::trace!("{}: indexing...", entry.path().to_str().unwrap_or("(unwrap error)"));
+    log::trace!("{}: collecting file metadata...", entry.path().to_str().unwrap_or("(unwrap error)"));
 
     let file_type = entry.file_type()?;
     let metadata = entry.metadata()?;

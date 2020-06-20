@@ -1,16 +1,19 @@
 use crate::{create_tables, fs_indexer, consts};
+use std::time::Instant;
 
 pub fn start(db_path: &str, directories: clap::Values<'_>, cpu_count: usize, force: bool) -> crate::ConvertibleResult<()> {
 
+    let start_time = Instant::now();
     log::debug!("index_once.start: begin...");
     log::debug!("{}: opening connection to database...", db_path);
     let conn = rusqlite::Connection::open(db_path)?;
     create_tables::execute(&conn)?;
     log::debug!("{}: open OK; tables initialized", db_path);
 
+    let directories: Vec<String> = directories.map(|v| v.to_string()).collect();
+    log::debug!("directories selected for indexing: '{}'", directories.join(", "));
     for dir in directories {
-        log::debug!("{}: indexing depth first...", dir);
-        match fs_indexer::depth_first_indexer(dir, cpu_count) {
+        match fs_indexer::depth_first_indexer(dir.as_str(), cpu_count) {
             Ok(fs_nodes) => {
                 log::debug!("{}: indexing done, inserting into database...", dir);
                 for fs_node in fs_nodes {
@@ -29,6 +32,7 @@ pub fn start(db_path: &str, directories: clap::Values<'_>, cpu_count: usize, for
 
     conn.close()?;
     log::debug!("{}: closed database connection.", db_path);
+    log::debug!("index_once.start: done. total time elapsed: {} ms", start_time.elapsed().as_millis());
 
     Ok(())
 }
