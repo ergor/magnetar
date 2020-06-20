@@ -1,7 +1,6 @@
 pub mod fs_indexer;
 pub mod index_once;
 pub mod listener;
-pub mod balancer;
 
 use clap;
 use crate::consts;
