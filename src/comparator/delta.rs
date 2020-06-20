@@ -2,11 +2,12 @@ use crate::comparator::virtual_fs_node::VirtualFsNode;
 use crate::db_models::fs_node::NodeType;
 use chrono::TimeZone;
 use std::collections::HashSet;
+use crate::apperror::AppError;
 
 #[derive(Debug)]
 pub struct Delta<'a> {
     delta_type: DeltaType,
-    field_delta_types: HashSet<FieldDelta>,
+    delta_trigger_attrs: HashSet<Attribute>,
     a: Option<VirtualFsNode<'a>>,
     b: Option<VirtualFsNode<'a>>,
 }
@@ -32,7 +33,7 @@ impl DeltaType {
 
 /// Indicates what field in the FsNodes was changed.
 #[derive(Debug, Eq, PartialEq, Hash, Clone)]
-pub enum FieldDelta {
+pub enum Attribute {
     NodeType,
     Checksum,
     Size,
@@ -46,32 +47,80 @@ pub enum FieldDelta {
     NLinks
 }
 
-impl FieldDelta {
-    pub fn all() -> HashSet<FieldDelta> {
+impl Attribute {
+    pub fn all() -> HashSet<Attribute> {
         let mut set = HashSet::new();
-        set.insert(FieldDelta::NodeType);
-        set.insert(FieldDelta::Checksum);
-        set.insert(FieldDelta::Size);
-        set.insert(FieldDelta::User);
-        set.insert(FieldDelta::Group);
-        set.insert(FieldDelta::Permissions);
-        set.insert(FieldDelta::CreationDate);
-        set.insert(FieldDelta::ModifiedDate);
-        set.insert(FieldDelta::LinksTo);
-        set.insert(FieldDelta::Inode);
-        set.insert(FieldDelta::NLinks);
+        set.insert(Attribute::NodeType);
+        set.insert(Attribute::Checksum);
+        set.insert(Attribute::Size);
+        set.insert(Attribute::User);
+        set.insert(Attribute::Group);
+        set.insert(Attribute::Permissions);
+        set.insert(Attribute::CreationDate);
+        set.insert(Attribute::ModifiedDate);
+        set.insert(Attribute::LinksTo);
+        set.insert(Attribute::Inode);
+        set.insert(Attribute::NLinks);
         set
+    }
+
+    pub fn medium() -> HashSet<Attribute> {
+        let mut set = HashSet::new();
+        set.insert(Attribute::NodeType);
+        set.insert(Attribute::Checksum);
+        set.insert(Attribute::Size);
+        set.insert(Attribute::User);
+        set.insert(Attribute::Group);
+        set.insert(Attribute::Permissions);
+        set.insert(Attribute::CreationDate);
+        set.insert(Attribute::ModifiedDate);
+        set
+    }
+
+    pub fn lite() -> HashSet<Attribute> {
+        let mut set = HashSet::new();
+        set.insert(Attribute::NodeType);
+        set.insert(Attribute::Checksum);
+        set.insert(Attribute::Size);
+        set.insert(Attribute::ModifiedDate);
+        set
+    }
+
+    pub fn from_arg(arg: &str) -> Result<HashSet<Attribute>, AppError> {
+        let mut set = HashSet::new();
+        for c in arg.chars() {
+            let attr = Attribute::from_char(c)?;
+            set.insert(attr);
+        }
+        Ok(set)
+    }
+
+    fn from_char(c: char) -> Result<Attribute, AppError> {
+        match c {
+            't' => Ok(Attribute::NodeType),
+            'c' => Ok(Attribute::Checksum),
+            's' => Ok(Attribute::Size),
+            'u' => Ok(Attribute::User),
+            'g' => Ok(Attribute::Group),
+            'p' => Ok(Attribute::Permissions),
+            'b' => Ok(Attribute::CreationDate),
+            'm' => Ok(Attribute::ModifiedDate),
+            'l' => Ok(Attribute::LinksTo),
+            'i' => Ok(Attribute::Inode),
+            'n' => Ok(Attribute::NLinks),
+            _ => Err(AppError::WithMessage("'{}' is not a valid attribute change option.".to_string()))
+        }
     }
 }
 
 impl<'a> Delta<'a> {
 
     /// ### params
-    /// `field_delta_types`: what field changes shall count as a `DeltaType::Modification`
-    pub fn new(a: Option<VirtualFsNode<'a>>, b: Option<VirtualFsNode<'a>>, field_delta_types: &HashSet<FieldDelta>) -> Delta<'a> {
+    /// `delta_trigger_attrs`: what field changes shall count as a `DeltaType::Modification`
+    pub fn new(a: Option<VirtualFsNode<'a>>, b: Option<VirtualFsNode<'a>>, delta_trigger_attrs: &HashSet<Attribute>) -> Delta<'a> {
         let mut comparison = Delta {
             delta_type: DeltaType::NoChange,
-            field_delta_types: field_delta_types.clone(),
+            delta_trigger_attrs: delta_trigger_attrs.clone(),
             a,
             b,
         };
@@ -79,8 +128,6 @@ impl<'a> Delta<'a> {
         return comparison;
     }
 
-    /// ### params
-    /// `field_delta_types`: what field changes shall count as a `DeltaType::Modification`
     pub fn delta_type(&self) -> DeltaType {
         if self.a.is_none() && self.b.is_some() {
             return DeltaType::Creation;
@@ -89,22 +136,23 @@ impl<'a> Delta<'a> {
             return DeltaType::Deletion;
         }
         else if let (Some(_), Some(_)) = (&self.a, &self.b) {
-            let field_deltas: Vec<String> = self.field_deltas();
+            let modified_attrs: Vec<String> = self.modified_attributes();
             return
-                if field_deltas.is_empty() {
+                if modified_attrs.is_empty() {
                     DeltaType::NoChange
                 } else {
-                    DeltaType::Modification(field_deltas)
+                    DeltaType::Modification(modified_attrs)
                 };
         }
         unreachable!("comparison: delta_type exhausted");
     }
 
     pub fn root_path_str(&self) -> &str {
-        if let Some(vnode) = &self.a {
+        // order is important, we want b first, because b represents current state.
+        if let Some(vnode) = &self.b {
             return vnode.root.as_str();
         }
-        if let Some(vnode) = &self.b {
+        if let Some(vnode) = &self.a {
             return vnode.root.as_str();
         }
         unreachable!("both vfsnodes were None");
@@ -148,48 +196,48 @@ impl<'a> Delta<'a> {
         }
     }
 
-    pub fn field_deltas(&self) -> Vec<String> {
+    pub fn modified_attributes(&self) -> Vec<String> {
         let mut deltas = Vec::new();
 
-        let aaa = &self.a.as_ref().expect("field_deltas must never be called on a creation or deletion delta").fs_node;
-        let bbb = &self.b.as_ref().expect("field_deltas must never be called on a creation or deletion delta").fs_node;
+        let aaa = &self.a.as_ref().expect("modified_attributes must never be called on a creation or deletion delta").fs_node;
+        let bbb = &self.b.as_ref().expect("modified_attributes must never be called on a creation or deletion delta").fs_node;
 
         // TODO: this is kinda ugly
-        if self.field_delta_types.contains(&FieldDelta::Size) && aaa.size != bbb.size {
+        if self.delta_trigger_attrs.contains(&Attribute::Size) && aaa.size != bbb.size {
             deltas.push(format!("size: {} -> {}", aaa.size, bbb.size));
         }
-        if self.field_delta_types.contains(&FieldDelta::NodeType) && aaa.node_type != bbb.node_type {
+        if self.delta_trigger_attrs.contains(&Attribute::NodeType) && aaa.node_type != bbb.node_type {
             deltas.push(format!("type: {} -> {}", aaa.node_type, bbb.node_type));
         }
-        if self.field_delta_types.contains(&FieldDelta::User) && aaa.uid != bbb.uid {
+        if self.delta_trigger_attrs.contains(&Attribute::User) && aaa.uid != bbb.uid {
             deltas.push(format!("uid: {} -> {}", aaa.uid, bbb.uid));
         }
-        if self.field_delta_types.contains(&FieldDelta::Group) && aaa.gid != bbb.gid {
+        if self.delta_trigger_attrs.contains(&Attribute::Group) && aaa.gid != bbb.gid {
             deltas.push(format!("gid: {} -> {}", aaa.gid, bbb.gid));
         }
-        if self.field_delta_types.contains(&FieldDelta::Permissions) && aaa.permissions != bbb.permissions {
+        if self.delta_trigger_attrs.contains(&Attribute::Permissions) && aaa.permissions != bbb.permissions {
             deltas.push(format!("perms: {} -> {}", aaa.permissions, bbb.permissions));
         }
-        if self.field_delta_types.contains(&FieldDelta::CreationDate) && aaa.creation_date != bbb.creation_date {
+        if self.delta_trigger_attrs.contains(&Attribute::CreationDate) && aaa.creation_date != bbb.creation_date {
             let time_a = chrono::Local.timestamp(aaa.creation_date, 0);
             let time_b = chrono::Local.timestamp(bbb.creation_date, 0);
             deltas.push(format!("date created: {} -> {}", time_a.to_string(), time_b.to_string()));
         }
-        if self.field_delta_types.contains(&FieldDelta::ModifiedDate) && aaa.modified_date != bbb.modified_date {
+        if self.delta_trigger_attrs.contains(&Attribute::ModifiedDate) && aaa.modified_date != bbb.modified_date {
             let time_a = chrono::Local.timestamp(aaa.modified_date, 0);
             let time_b = chrono::Local.timestamp(bbb.modified_date, 0);
             deltas.push(format!("date modified: {} -> {}", time_a.to_string(), time_b.to_string()));
         }
-        if self.field_delta_types.contains(&FieldDelta::LinksTo) && aaa.links_to != bbb.links_to {
+        if self.delta_trigger_attrs.contains(&Attribute::LinksTo) && aaa.links_to != bbb.links_to {
             deltas.push(format!("symlink to: {} -> {}", aaa.links_to, bbb.links_to));
         }
-        if self.field_delta_types.contains(&FieldDelta::Checksum) && aaa.sha1_checksum != bbb.sha1_checksum {
+        if self.delta_trigger_attrs.contains(&Attribute::Checksum) && aaa.sha1_checksum != bbb.sha1_checksum {
             deltas.push(format!("sha1: {} -> {}", aaa.sha1_checksum, bbb.sha1_checksum));
         }
-        if self.field_delta_types.contains(&FieldDelta::Inode) && aaa.inode != bbb.inode {
+        if self.delta_trigger_attrs.contains(&Attribute::Inode) && aaa.inode != bbb.inode {
             deltas.push(format!("inode: {} -> {}", aaa.inode, bbb.inode));
         }
-        if self.field_delta_types.contains(&FieldDelta::NLinks) && aaa.nlinks != bbb.nlinks {
+        if self.delta_trigger_attrs.contains(&Attribute::NLinks) && aaa.nlinks != bbb.nlinks {
             deltas.push(format!("hardlink count: {} -> {}", aaa.nlinks, bbb.nlinks));
         }
 

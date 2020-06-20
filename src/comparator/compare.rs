@@ -1,5 +1,5 @@
 use crate::apperror::AppError;
-use crate::comparator::delta::{Delta, FieldDelta};
+use crate::comparator::delta::{Delta, Attribute};
 use crate::comparator::virtual_fs_node::VirtualFsNode;
 use crate::db_models::fs_node::FsNode;
 use std::collections::{BTreeMap, BTreeSet, HashSet};
@@ -46,7 +46,7 @@ pub fn make_pool(fs_nodes: &Vec<FsNode>, roots: Vec<String>) -> Result<VFsNodeMa
 
 /// for each pool, the virtual path must be unique.
 /// **pool_a** is defined as the old index, and **pool_b** is the new.
-pub fn compare<'a>(mut pool_a: VFsNodeMap<'a>, mut pool_b: VFsNodeMap<'a>, field_delta_types: &HashSet<FieldDelta>) -> Vec<Delta<'a>> {
+pub fn compare<'a>(mut pool_a: VFsNodeMap<'a>, mut pool_b: VFsNodeMap<'a>, attr_types: &HashSet<Attribute>) -> Vec<Delta<'a>> {
 
     let v_paths_a_set: BTreeSet<String> = BTreeSet::from_iter(pool_a.keys().cloned());
     let v_paths_b_set: BTreeSet<String> = BTreeSet::from_iter(pool_b.keys().cloned());
@@ -54,14 +54,14 @@ pub fn compare<'a>(mut pool_a: VFsNodeMap<'a>, mut pool_b: VFsNodeMap<'a>, field
 
     let mut deletions: DeltaMap<'_> = BTreeMap::from_iter(
         v_paths_a_set.difference(&v_paths_b_set)
-        .map(|v_path| (v_path.clone(), Delta::new(Some(pool_a.remove(v_path).unwrap()), None, field_delta_types)))
+        .map(|v_path| (v_path.clone(), Delta::new(Some(pool_a.remove(v_path).unwrap()), None, attr_types)))
     );
 
     log::debug!("compare: found {} deletions", deletions.len());
 
     let mut creations: DeltaMap<'_> = BTreeMap::from_iter(
         v_paths_b_set.difference(&v_paths_a_set)
-        .map(|v_path| (v_path.clone(), Delta::new(None, Some(pool_b.remove(v_path).unwrap()), field_delta_types)))
+        .map(|v_path| (v_path.clone(), Delta::new(None, Some(pool_b.remove(v_path).unwrap()), attr_types)))
     );
 
     log::debug!("compare: found {} creations", creations.len());
@@ -69,7 +69,7 @@ pub fn compare<'a>(mut pool_a: VFsNodeMap<'a>, mut pool_b: VFsNodeMap<'a>, field
     // the intersection contains both modified and unmodified files
     let mut intersection: DeltaMap<'_> = BTreeMap::from_iter(
         v_paths_a_set.intersection(&v_paths_b_set)
-        .map(|v_path| (v_path.clone(), Delta::new(Some(pool_a.remove(v_path).unwrap()), Some(pool_b.remove(v_path).unwrap()), field_delta_types)))
+        .map(|v_path| (v_path.clone(), Delta::new(Some(pool_a.remove(v_path).unwrap()), Some(pool_b.remove(v_path).unwrap()), attr_types)))
     );
 
     log::debug!("compare: found {} intersections", intersection.len());

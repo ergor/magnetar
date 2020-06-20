@@ -12,7 +12,7 @@ use crate::errorwrapper::ErrorWrapper;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::io;
-use crate::comparator::delta::FieldDelta;
+use crate::comparator::delta::Attribute;
 
 macro_rules! validate_roots {
     ($roots_ref:expr, $index_name:literal) => {
@@ -34,6 +34,11 @@ pub fn run(args: &clap::ArgMatches<'_>) -> ConvertibleResult<()> {
     let first_index = fetch_fs_nodes(args, "first-index")?;
     let second_index = fetch_fs_nodes(args, "second-index")?;
 
+    let attrs = match args.value_of("mode") {
+        None => Attribute::all(),
+        Some(m) => Attribute::from_arg(m)?
+    };
+
     let roots_a = roots(args, "root-a");
     let roots_b = roots(args, "root-b");
 
@@ -43,9 +48,7 @@ pub fn run(args: &clap::ArgMatches<'_>) -> ConvertibleResult<()> {
     let pool_a = compare::make_pool(&first_index,  roots_a)?;
     let pool_b = compare::make_pool(&second_index, roots_b)?;
 
-    // TODO: add a cmdline arg to specify field deltas.
-    let field_delta_types = FieldDelta::all();
-    let deltas = compare::compare(pool_a, pool_b, &field_delta_types);
+    let deltas = compare::compare(pool_a, pool_b, &attrs);
 
     let output_stream = match args.value_of("directory") {
         None => { io::stdout() },
@@ -156,4 +159,12 @@ pub fn cmdline<'a>() -> clap::App<'a, 'a> {
             .help("Add ROOT as a comparison root for the 'b' (i.e. second) index.\n\
                   This option can be specified multiple times.\n\
                   If no root is specified, '/' is assumed."))
+        .arg(clap::Arg::with_name("mode")
+            .long("mode")
+            .short("m")
+            .value_name("MODE")
+            .next_line_help(true)
+            .help("What attributes should count towards being a change.\n\
+                  node(t)ype, (c)hecksum, (s)ize, (u)ser, (g)roup, (p)ermissions,\n\
+                  (b)irthdate, (m)odifieddate, (l)inksto, (i)node, (n)links"))
 }
