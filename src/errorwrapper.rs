@@ -2,6 +2,7 @@
 use crate::apperror::AppError;
 use std::{io, time};
 use std::fmt;
+use std::any::Any;
 
 /// An error type containing other error types, useful for convertible Result .
 #[derive(Debug)]
@@ -10,6 +11,7 @@ pub enum ErrorWrapper {
     IO(io::Error),
     SystemTimeError(time::SystemTimeError),
     AppError(AppError),
+    ThreadError(Box<dyn Any + Send>),
 }
 
 impl From<rusqlite::Error> for ErrorWrapper {
@@ -43,6 +45,12 @@ impl From<AppError> for ErrorWrapper {
     }
 }
 
+impl From<std::boxed::Box<dyn std::any::Any + std::marker::Send>> for ErrorWrapper {
+    fn from(e: Box<dyn Any + Send>) -> Self {
+        ErrorWrapper::ThreadError(e)
+    }
+}
+
 impl fmt::Display for ErrorWrapper {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let buf: String = match self {
@@ -50,6 +58,7 @@ impl fmt::Display for ErrorWrapper {
             ErrorWrapper::IO(e) =>              { format!("{}", e) },
             ErrorWrapper::SystemTimeError(e) => { format!("{}", e) },
             ErrorWrapper::AppError(e) =>        { format!("{}", e) },
+            ErrorWrapper::ThreadError(_) =>     { format!("{}", "(thread error)") },
         };
         write!(f, "ErrorWrapper: {}", buf)
     }

@@ -9,72 +9,44 @@ use std::time::{SystemTime, Instant};
 use std::fs::{DirEntry, ReadDir};
 use std::cell::{Cell, RefCell, RefMut};
 use std::borrow::Borrow;
+use crate::indexer::balancer::Work;
 
 const READ_BUF_SZ: usize = 1024 * 1024;
 
 /// Assumes you won't run this function twice on the same path.
 /// I.e., you must ensure the paths you put in here are NOT subdirs of eachother.
-pub fn depth_first_indexer(dir_path: &str, cpu_count: usize) -> io::Result<Vec<FsNode>> {
+pub fn index(workload: Work) -> io::Result<Vec<FsNode>> {
     let mut fs_nodes: Vec<FsNode> = Vec::new();
     let mut read_buf = [0 as u8; READ_BUF_SZ];
-    let mut dir_iter_stack: Vec<RefCell<ReadDir>> = Vec::new();
-    let mut visit_log_stack: Vec<(Instant, String)> = Vec::new(); // for logging purposes
 
     let start_time = Instant::now();
-    log::debug!("depth_first_indexer: {}: start...", dir_path);
+    let workload_pretty = format!("{}", workload);
+    log::debug!("{}: start...", workload_pretty);
 
-    let root_level_entries_iter = fs::read_dir(dir_path)?;
-    dir_iter_stack.push(RefCell::new(root_level_entries_iter));
-    visit_log_stack.push((Instant::now(), dir_path.to_string()));
-
-    while !dir_iter_stack.is_empty() {
-        let current_dir_iter = dir_iter_stack.last().unwrap(); // we know it's Some, because of loop condition
-        let next_child = current_dir_iter.borrow_mut().next();
-        if next_child.is_some() {
-            let child: DirEntry = next_child.unwrap()?;
-
-            match process_single_dir_entry(&child, &mut read_buf) {
-                Ok(fs_node) => {
-                    fs_nodes.push(fs_node);
-                }
-                Err(e) => {
-                    log::error!("could not read file info: {}", e);
-                },
+    for dir_entry in workload.entries {
+        match process_single_dir_entry(dir_entry, &mut read_buf, workload.thread) {
+            Ok(fs_node) => {
+                fs_nodes.push(fs_node);
             }
-
-            if child.file_type()?.is_dir() {
-                let child_path = child.path();
-                let child_path = child_path.to_str().unwrap_or("(unwrap error)");
-                log::debug!("{}: now descending into...", child_path);
-                dir_iter_stack.push(
-                    RefCell::new(fs::read_dir(child_path)?)
-                );
-                visit_log_stack.push((Instant::now(), child_path.to_string()));
-            }
-        }
-        else {
-            let (time_elapsed, visited_path) = match visit_log_stack.pop() {
-                Some((time, path)) => (time.elapsed().as_millis(), path),
-                None => (u128::max_value(), "(unwrap error)".to_string())
-            };
-            log::debug!("{}: directory indexing done. time elapsed: {} ms.", visited_path, time_elapsed);
-            dir_iter_stack.pop();
+            Err(e) => {
+                log::error!("could not read file info: {}", e);
+            },
         }
     }
 
-    log::debug!("depth_first_indexer: {}: done. time elapsed: {} ms.", dir_path, start_time.elapsed().as_millis());
+    log::debug!("{}: done. time elapsed: {} ms.", workload_pretty, start_time.elapsed().as_millis());
 
     Ok(fs_nodes)
 }
 
-fn process_single_dir_entry(entry: &fs::DirEntry, read_buf: &mut [u8]) -> crate::ConvertibleResult<FsNode> {
+fn process_single_dir_entry(entry: fs::DirEntry, read_buf: &mut [u8], thread_num: usize) -> crate::ConvertibleResult<FsNode> {
 
     if entry.path().is_relative() {
         panic!("TODO: convert relative paths to absolute paths");
     }
 
     let start_time = Instant::now();
-    log::trace!("{}: collecting file metadata...", entry.path().to_str().unwrap_or("(unwrap error)"));
+    log::trace!("thread {}: {}: collecting file metadata...", thread_num, entry.path().to_str().unwrap_or("(unwrap error)"));
 
     let file_type = entry.file_type()?;
     let metadata = entry.metadata()?;
@@ -126,7 +98,7 @@ fn process_single_dir_entry(entry: &fs::DirEntry, read_buf: &mut [u8]) -> crate:
 
     fs_node.sha1_checksum =
         if let NodeType::File = fs_node.node_type {
-            String::from(checksum(read_buf, &entry)?)
+            String::from(checksum(read_buf, &entry, thread_num)?)
         } else {
             String::new()
         };
@@ -135,15 +107,15 @@ fn process_single_dir_entry(entry: &fs::DirEntry, read_buf: &mut [u8]) -> crate:
     fs_node.nlinks = metadata.st_nlink() as i64;
     // TODO: parent id
 
-    log::trace!("{}: indexing of file done. time elapsed: {} ms.", entry.path().to_str().unwrap_or("(unwrap error)"), start_time.elapsed().as_millis());
+    log::trace!("thread {}: {}: indexing of file done. time elapsed: {} ms.", thread_num, entry.path().to_str().unwrap_or("(unwrap error)"), start_time.elapsed().as_millis());
 
     Ok(fs_node)
 }
 
-fn checksum(read_buf: &mut [u8], file_entry: &fs::DirEntry) -> io::Result<String> {
+fn checksum(read_buf: &mut [u8], file_entry: &fs::DirEntry, thread_num: usize) -> io::Result<String> {
 
     let start_time = Instant::now();
-    log::trace!("{}: calculating sha1 checksum...", file_entry.path().to_str().unwrap_or("(unwrap error)"));
+    log::trace!("thread {}: {}: calculating sha1 checksum...", thread_num, file_entry.path().to_str().unwrap_or("(unwrap error)"));
 
     let mut file = fs::File::open(file_entry.path())?;
     let mut sha1digest = sha1::Sha1::new();
@@ -157,7 +129,7 @@ fn checksum(read_buf: &mut [u8], file_entry: &fs::DirEntry) -> io::Result<String
         }
     }
 
-    log::trace!("{}: sha1 checksum calculated. time elapsed: {} ms.", file_entry.path().to_str().unwrap_or("(unwrap error)"), start_time.elapsed().as_millis());
+    log::trace!("thread {}: {}: sha1 checksum calculated. time elapsed: {} ms.", thread_num, file_entry.path().to_str().unwrap_or("(unwrap error)"), start_time.elapsed().as_millis());
 
     Ok(sha1digest.digest().to_string())
 }
