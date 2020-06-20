@@ -18,20 +18,22 @@ pub fn depth_first_indexer(dir_path: &str, cpu_count: usize) -> io::Result<Vec<F
     let mut fs_nodes: Vec<FsNode> = Vec::new();
     let mut read_buf = [0 as u8; READ_BUF_SZ];
     let mut dir_iter_stack: Vec<RefCell<ReadDir>> = Vec::new();
+    let mut visit_log_stack: Vec<(Instant, String)> = Vec::new(); // for logging purposes
 
     let start_time = Instant::now();
-    log::debug!("{}: indexing files in directory...", dir_path);
+    log::debug!("depth_first_indexer: {}: start...", dir_path);
 
     let root_level_entries_iter = fs::read_dir(dir_path)?;
     dir_iter_stack.push(RefCell::new(root_level_entries_iter));
+    visit_log_stack.push((Instant::now(), dir_path.to_string()));
 
     while !dir_iter_stack.is_empty() {
         let current_dir_iter = dir_iter_stack.last().unwrap(); // we know it's Some, because of loop condition
-        let dir_iter_next = current_dir_iter.borrow_mut().next();
-        if dir_iter_next.is_some() {
-            let dir_entry: DirEntry = dir_iter_next.unwrap()?;
+        let next_child = current_dir_iter.borrow_mut().next();
+        if next_child.is_some() {
+            let child: DirEntry = next_child.unwrap()?;
 
-            match process_single_dir_entry(&dir_entry, &mut read_buf) {
+            match process_single_dir_entry(&child, &mut read_buf) {
                 Ok(fs_node) => {
                     fs_nodes.push(fs_node);
                 }
@@ -40,19 +42,27 @@ pub fn depth_first_indexer(dir_path: &str, cpu_count: usize) -> io::Result<Vec<F
                 },
             }
 
-            if dir_entry.file_type()?.is_dir() {
-                log::debug!("{}: indexing files in directory...", dir_entry.path().to_str().unwrap_or("(unwrap error)"));
+            if child.file_type()?.is_dir() {
+                let child_path = child.path();
+                let child_path = child_path.to_str().unwrap_or("(unwrap error)");
+                log::debug!("{}: now descending into...", child_path);
                 dir_iter_stack.push(
-                    RefCell::new(fs::read_dir(dir_entry.path())?)
+                    RefCell::new(fs::read_dir(child_path)?)
                 );
+                visit_log_stack.push((Instant::now(), child_path.to_string()));
             }
         }
         else {
+            let (time_elapsed, visited_path) = match visit_log_stack.pop() {
+                Some((time, path)) => (time.elapsed().as_millis(), path),
+                None => (u128::max_value(), "(unwrap error)".to_string())
+            };
+            log::debug!("{}: directory indexing done. time elapsed: {} ms.", visited_path, time_elapsed);
             dir_iter_stack.pop();
         }
     }
 
-    log::debug!("{}: directory indexing done. time elapsed: {} ms.", dir_path, start_time.elapsed().as_millis());
+    log::debug!("depth_first_indexer: {}: done. time elapsed: {} ms.", dir_path, start_time.elapsed().as_millis());
 
     Ok(fs_nodes)
 }
