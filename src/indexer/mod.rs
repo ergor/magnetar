@@ -52,7 +52,7 @@ pub fn run(args: &clap::ArgMatches<'_>) -> crate::ConvertibleResult<()> {
         }
     } else {
         #[cfg(target_family = "unix")]
-        index_once::start(db_path, directories, cpu_count, args.is_present("force"))?;
+        index_once::start(db_path, directories, cpu_count)?;
 
         #[cfg(target_family = "windows")]
         {
@@ -71,16 +71,6 @@ pub fn cmdline<'a>() -> clap::App<'a, 'a> {
             .short("d")
             .long("daemonize")
             .help("Run the program in background")
-            .takes_value(false))
-        .arg(clap::Arg::with_name("force")
-            .short("f")
-            .long("force")
-            .help("Create a new index instead of diffing current")
-            .takes_value(false))
-        .arg(clap::Arg::with_name("listen")
-            .short("l")
-            .long("listen")
-            .help("Listen for filesystem changes instead of active indexing")
             .takes_value(false))
         .arg(clap::Arg::with_name("output-dir")
             .short("o")

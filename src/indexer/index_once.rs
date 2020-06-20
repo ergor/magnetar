@@ -1,7 +1,7 @@
 use crate::{create_tables, fs_indexer, consts};
 use std::time::Instant;
 
-pub fn start(db_path: &str, directories: clap::Values<'_>, cpu_count: usize, force: bool) -> crate::ConvertibleResult<()> {
+pub fn start(db_path: &str, directories: clap::Values<'_>, cpu_count: usize) -> crate::ConvertibleResult<()> {
 
     let start_time = Instant::now();
     log::debug!("index_once.start: begin...");
