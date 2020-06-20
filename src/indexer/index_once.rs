@@ -17,7 +17,7 @@ pub fn start(db_path: &str, directories: clap::Values<'_>) -> crate::Convertible
             Ok(fs_nodes) => {
                 log::debug!("{}: indexing done, inserting into database...", dir);
                 for fs_node in fs_nodes {
-                    log::trace!("{:?}", fs_node);
+                    log::trace!("INSERT {:?}", fs_node);
                     if let Err(e) = fs_node.insert(&conn) {
                         log::error!("could not insert fsnode entry into db: {}", e);
                     }
