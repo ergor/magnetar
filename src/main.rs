@@ -19,7 +19,6 @@ use indexer::fs_indexer;
 use std::env;
 use std::result;
 use flexi_logger;
-use log::LevelFilter;
 
 const LOGGING_LEVEL_VERBOSE: &str = "magnetar = trace";
 const LOGGING_LEVEL_DEFAULT: &str = "magnetar = debug";

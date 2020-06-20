@@ -28,8 +28,6 @@ pub fn run(args: &clap::ArgMatches<'_>) -> crate::ConvertibleResult<()> {
         unimplemented!()
     }
 
-    let cpu_count = num_cpus::get();
-
     let time_now = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .expect("somehow, time now is before start of UNIX epoch");
@@ -52,7 +50,7 @@ pub fn run(args: &clap::ArgMatches<'_>) -> crate::ConvertibleResult<()> {
         }
     } else {
         #[cfg(target_family = "unix")]
-        index_once::start(db_path, directories, cpu_count)?;
+        index_once::start(db_path, directories)?;
 
         #[cfg(target_family = "windows")]
         {

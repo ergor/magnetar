@@ -7,14 +7,13 @@ use std::io;
 use std::os::linux::fs::MetadataExt;
 use std::time::{SystemTime, Instant};
 use std::fs::{DirEntry, ReadDir};
-use std::cell::{Cell, RefCell, RefMut};
-use std::borrow::Borrow;
+use std::cell::RefCell;
 
 const READ_BUF_SZ: usize = 1024 * 1024;
 
 /// Assumes you won't run this function twice on the same path.
 /// I.e., you must ensure the paths you put in here are NOT subdirs of eachother.
-pub fn depth_first_indexer(dir_path: &str, cpu_count: usize) -> io::Result<Vec<FsNode>> {
+pub fn depth_first_indexer(dir_path: &str) -> io::Result<Vec<FsNode>> {
     let mut fs_nodes: Vec<FsNode> = Vec::new();
     let mut read_buf = [0 as u8; READ_BUF_SZ];
     let mut dir_iter_stack: Vec<RefCell<ReadDir>> = Vec::new();

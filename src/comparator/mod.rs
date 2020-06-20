@@ -49,7 +49,7 @@ pub fn run(args: &clap::ArgMatches<'_>) -> ConvertibleResult<()> {
 
     let output_stream = match args.value_of("directory") {
         None => { io::stdout() },
-        Some(dir) => { unimplemented!("writing to file not implemented") },
+        Some(_dir) => { unimplemented!("writing to file not implemented") },
     };
 
     report::write(output_stream, deltas)?;

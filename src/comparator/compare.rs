@@ -1,12 +1,9 @@
-use crate::comparator::delta::{Delta, DeltaType, FieldDelta};
-use crate::comparator::delta;
-use crate::db_models::fs_node::{FsNode, NodeType};
-use std::collections::{HashMap, BTreeMap, BTreeSet, HashSet};
-use std::fs::read;
-use std::iter::FromIterator;
-use std::path::{Path, PathBuf};
-use crate::comparator::virtual_fs_node::VirtualFsNode;
 use crate::apperror::AppError;
+use crate::comparator::delta::{Delta, FieldDelta};
+use crate::comparator::virtual_fs_node::VirtualFsNode;
+use crate::db_models::fs_node::FsNode;
+use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::iter::FromIterator;
 
 
 pub type VFsNodeMap<'a> = BTreeMap<String, VirtualFsNode<'a>>;

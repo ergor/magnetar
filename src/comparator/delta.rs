@@ -1,10 +1,7 @@
-use crate::db_models::fs_node::{FsNode, NodeType};
-use std::panic::resume_unwind;
-use std::path::PathBuf;
 use crate::comparator::virtual_fs_node::VirtualFsNode;
-use std::collections::{HashMap, HashSet};
-use std::time::SystemTime;
+use crate::db_models::fs_node::NodeType;
 use chrono::TimeZone;
+use std::collections::HashSet;
 
 #[derive(Debug)]
 pub struct Delta<'a> {
@@ -91,7 +88,7 @@ impl<'a> Delta<'a> {
         else if self.a.is_some() && self.b.is_none() {
             return DeltaType::Deletion;
         }
-        else if let (Some(a), Some(b)) = (&self.a, &self.b) {
+        else if let (Some(_), Some(_)) = (&self.a, &self.b) {
             let field_deltas: Vec<String> = self.field_deltas();
             return
                 if field_deltas.is_empty() {

@@ -1,7 +1,7 @@
-use crate::{create_tables, fs_indexer, consts};
+use crate::{create_tables, fs_indexer};
 use std::time::Instant;
 
-pub fn start(db_path: &str, directories: clap::Values<'_>, cpu_count: usize) -> crate::ConvertibleResult<()> {
+pub fn start(db_path: &str, directories: clap::Values<'_>) -> crate::ConvertibleResult<()> {
 
     let start_time = Instant::now();
     log::debug!("index_once.start: begin...");
@@ -13,7 +13,7 @@ pub fn start(db_path: &str, directories: clap::Values<'_>, cpu_count: usize) -> 
     let directories: Vec<String> = directories.map(|v| v.to_string()).collect();
     log::debug!("directories selected for indexing: '{}'", directories.join(", "));
     for dir in directories {
-        match fs_indexer::depth_first_indexer(dir.as_str(), cpu_count) {
+        match fs_indexer::depth_first_indexer(dir.as_str()) {
             Ok(fs_nodes) => {
                 log::debug!("{}: indexing done, inserting into database...", dir);
                 for fs_node in fs_nodes {
@@ -25,7 +25,7 @@ pub fn start(db_path: &str, directories: clap::Values<'_>, cpu_count: usize) -> 
                 log::debug!("{}: db insertions OK.", dir);
             },
             Err(e) => {
-                log::error!("{}: could not index directory.", dir);
+                log::error!("{}: could not index directory: {}", dir, e);
             },
         };
     }

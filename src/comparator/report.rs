@@ -1,8 +1,7 @@
-use crate::comparator::delta::{Delta, DeltaType, FieldDelta};
+use crate::comparator::delta::Delta;
 use std::io::Write;
 use std::io;
-use std::collections::HashSet;
-use std::path::{PathBuf, Path};
+use std::path::PathBuf;
 
 const TR: &str =
     r#"<tr class="${class}">

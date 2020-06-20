@@ -1,4 +1,4 @@
-use std::{fs, fmt};
+use std::fmt;
 use rusqlite::types::{FromSqlResult, ValueRef};
 use std::fmt::Display;
 
@@ -6,31 +6,8 @@ use std::fmt::Display;
 /// sha1_checksum: 40 chars long
 /// links_to: for soft links (symlinks)
 /// nlinks: number of hard links to this inode
-// macro_rules! fsnode_fields {
-//     //( $prefix:expr, $postfix:expr ) => {
-//     //    $prefix id $postfix
-//     //}
-//
-//     () => {
-//         id
-//         node_type
-//         sha1_checksum
-//         parent_path
-//         name
-//         size
-//         uid
-//         gid
-//         permissions
-//         creation_date
-//         modified_date
-//         links_to
-//         inode
-//         nlinks
-//     }
-// }
-
-// TODO: use diesel for ORM. https://github.com/diesel-rs/diesel
-// i64 instead of u64 beacause of some sqlite spec.
+/// TODO: use diesel for ORM. https://github.com/diesel-rs/diesel
+/// i64 instead of u64 beacause of some sqlite spec.
 #[derive(Default, Debug, Clone)]
 pub struct FsNode {
     pub id: i64,
@@ -178,7 +155,6 @@ impl FsNode {
     }
 
     pub fn map_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<FsNode> {
-        let c = row.column_count();
         Ok(FsNode {
             id: row.get("id")?,
             node_type: row.get("node_type")?,
@@ -196,56 +172,6 @@ impl FsNode {
             nlinks: row.get("nlinks")?,
         })
     }
-
-    // pub fn set<T> (&mut self, field: &str, value: T) {
-    //     match field {
-    //         "id" => { self.id = value as i64 },
-    //         "node_type" => { self.node_type = value as NodeType },
-    //         "sha1_checksum" => { self.sha1_checksum = value as String },
-    //         "parent_path" => { self.parent_path = value as String },
-    //         "name" => { self.name = value as String },
-    //         "size" => { self.size = value as i64 },
-    //         "uid" => { self.uid = value as u32 },
-    //         "gid" => { self.gid = value as u32 },
-    //         "permissions" => { self.permissions = value as u32 },
-    //         "creation_date" => { self.creation_date = value as i64 },
-    //         "modified_date" => { self.modified_date = value as i64 },
-    //         "links_to" => { self.links_to = value as String },
-    //         "inode" => { self.inode = value as i64 },
-    //         "nlinks" => { self.nlinks = value as i64 },
-    //         _ => { unimplemented!("{}: no setter for the field.", field)}
-    //     }
-    // }
-
-    // pub fn getOrNew(conn: rusqlite::Connection, node: fs::DirEntry) -> crate::Result<FsNode> {
-    //     let mut full_path = node.path();
-    //     assert!(full_path.is_absolute());
-    //
-    //     let path = full_path.parent()
-    //         .map_or(Some(""), |p| p.to_str());
-    //     let path = match path {
-    //         Some(s) => s,
-    //         None => return Err(crate::error::Error::NoneError),
-    //     };
-    //
-    //     let name = node.file_name();
-    //     let name = match name.to_str() {
-    //         Some(s) => s,
-    //         None => return Err(crate::error::Error::NoneError),
-    //     };
-    //
-    //     let mut cols_vect = Vec::new();
-    //     let mut stmt = conn.prepare("SELECT * FROM fs_node WHERE name = ? AND path = ?")?;
-    //     let mut rows = stmt.query(&[name, path])?;
-    //
-    //     while let Some(row) = rows.next()? {
-    //         cols_vect.push(rows.columns());
-    //     }
-    //
-    //     assert_eq!(1, cols_vect.len());
-    //
-    //     Ok(FsNode::new())
-    // }
 }
 
 
