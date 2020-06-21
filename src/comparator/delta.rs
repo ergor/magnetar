@@ -4,7 +4,6 @@ use chrono::TimeZone;
 use std::collections::HashSet;
 use crate::apperror::AppError;
 use crate::util::unix_perms::Permission;
-use crate::comparator::delta::Attribute::Permissions;
 
 #[derive(Debug)]
 pub struct Delta<'a> {

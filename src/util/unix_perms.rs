@@ -75,7 +75,7 @@ impl Permission {
     }
 
     pub fn is_set(&self, permbits: u32) -> bool {
-        self.bit() & permbits > 0
+        (self.bit() & permbits) == self.bit()
     }
 
     pub fn from_val(permbits: u32) -> String {
