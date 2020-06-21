@@ -13,12 +13,23 @@ const TR: &str =
 
 const SPAN: &str = "<span class=\"path\">{}/</span>";
 
+pub struct ReportSummary {
+    pub db_a_name: String,
+    pub db_b_name: String,
+    pub roots_a: Vec<String>,
+    pub roots_b: Vec<String>,
+}
+
 /// Prints the generated report to the given stream.
-pub fn write(mut out_stream: impl Write, deltas: Vec<Delta<'_>>) -> io::Result<()> {
-    let html = include_str!("report.html");
+pub fn write(mut out_stream: impl Write, deltas: Vec<Delta<'_>>, summary: ReportSummary) -> io::Result<()> {
+    let template = include_str!("report.html");
+
+    let output_html = summary.into_html(template);
+
     let rows = make_rows(&deltas);
-    let generated = html.replace("${rows}", rows.as_str());
-    let bytes_written = out_stream.write(generated.as_bytes())?;
+    let output_html = output_html.replace("${rows}", rows.as_str());
+    let bytes_written = out_stream.write(output_html.as_bytes())?;
+
     log::debug!("wrote {} bytes to output stream.", bytes_written);
 
     Ok(())
@@ -60,4 +71,19 @@ fn make_rows(deltas: &Vec<Delta<'_>>) -> String {
     }
 
     rows
+}
+
+impl ReportSummary {
+    pub fn into_html(self, html: &str) -> String {
+        let html = html.replace("${db-a}", self.db_a_name.as_str());
+        let html = html.replace("${db-b}", self.db_b_name.as_str());
+
+        let joined = String::from(self.roots_a.join(", "));
+        let html = html.replace("${roots-a}", joined.as_str());
+
+        let joined = String::from(self.roots_b.join(", "));
+        let html = html.replace("${roots-b}", joined.as_str());
+
+        html
+    }
 }

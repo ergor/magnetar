@@ -31,8 +31,11 @@ macro_rules! validate_roots {
 }
 
 pub fn run(args: &clap::ArgMatches<'_>) -> ConvertibleResult<()> {
-    let first_index = fetch_fs_nodes(args, "first-index")?;
-    let second_index = fetch_fs_nodes(args, "second-index")?;
+    let db_path_a = args.value_of("first-index").expect("path to database is required");
+    let db_path_b = args.value_of("second-index").expect("path to database is required");
+
+    let first_index = fetch_fs_nodes(db_path_a)?;
+    let second_index = fetch_fs_nodes(db_path_b)?;
 
     let attrs = match args.value_of("mode") {
         None => Attribute::all(),
@@ -45,6 +48,13 @@ pub fn run(args: &clap::ArgMatches<'_>) -> ConvertibleResult<()> {
     validate_roots!(&roots_a, "a");
     validate_roots!(&roots_b, "b");
 
+    let summary = report::ReportSummary {
+        db_a_name: db_path_a.to_string(),
+        db_b_name: db_path_b.to_string(),
+        roots_a: roots_a.clone(),
+        roots_b: roots_b.clone()
+    };
+
     let pool_a = compare::make_pool(&first_index,  roots_a)?;
     let pool_b = compare::make_pool(&second_index, roots_b)?;
 
@@ -55,15 +65,15 @@ pub fn run(args: &clap::ArgMatches<'_>) -> ConvertibleResult<()> {
         Some(_dir) => { unimplemented!("writing to file not implemented") },
     };
 
-    report::write(output_stream, deltas)?;
+    report::write(output_stream, deltas, summary)?;
 
     Ok(())
 }
 
-fn fetch_fs_nodes(args: &clap::ArgMatches<'_>, arg_name: &str) -> crate::ConvertibleResult<Vec<FsNode>> {
-    log::debug!("fetching fs_nodes for '{}'", arg_name);
+fn fetch_fs_nodes(db_path: &str) -> crate::ConvertibleResult<Vec<FsNode>> {
+    log::debug!("fetching fs_nodes from '{}'", db_path);
 
-    let index_db_path = Path::new(args.value_of(arg_name).unwrap());
+    let index_db_path = Path::new(db_path);
     if !index_db_path.exists() {
         let error = AppError::WithMessage(
             format!("database '{}' not found.", index_db_path.to_str().unwrap_or("(.to_str() failed)"))

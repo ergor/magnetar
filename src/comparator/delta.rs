@@ -3,6 +3,8 @@ use crate::db_models::fs_node::NodeType;
 use chrono::TimeZone;
 use std::collections::HashSet;
 use crate::apperror::AppError;
+use crate::util::unix_perms::Permission;
+use crate::comparator::delta::Attribute::Permissions;
 
 #[derive(Debug)]
 pub struct Delta<'a> {
@@ -136,7 +138,7 @@ impl<'a> Delta<'a> {
             return DeltaType::Deletion;
         }
         else if let (Some(_), Some(_)) = (&self.a, &self.b) {
-            let modified_attrs: Vec<String> = self.modified_attributes();
+            let modified_attrs: Vec<String> = self.modifications();
             return
                 if modified_attrs.is_empty() {
                     DeltaType::NoChange
@@ -196,7 +198,7 @@ impl<'a> Delta<'a> {
         }
     }
 
-    pub fn modified_attributes(&self) -> Vec<String> {
+    pub fn modifications(&self) -> Vec<String> {
         let mut deltas = Vec::new();
 
         let aaa = &self.a.as_ref().expect("modified_attributes must never be called on a creation or deletion delta").fs_node;
@@ -216,7 +218,9 @@ impl<'a> Delta<'a> {
             deltas.push(format!("gid: {} -> {}", aaa.gid, bbb.gid));
         }
         if self.delta_trigger_attrs.contains(&Attribute::Permissions) && aaa.permissions != bbb.permissions {
-            deltas.push(format!("perms: {} -> {}", aaa.permissions, bbb.permissions));
+            let aaa = Permission::from_val(aaa.permissions);
+            let bbb = Permission::from_val(bbb.permissions);
+            deltas.push(format!("perms: {} -> {}", aaa.as_str(), bbb.as_str()));
         }
         if self.delta_trigger_attrs.contains(&Attribute::CreationDate) && aaa.creation_date != bbb.creation_date {
             let time_a = chrono::Local.timestamp(aaa.creation_date, 0);

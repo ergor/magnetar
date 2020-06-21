@@ -12,6 +12,7 @@ mod db_models;
 mod dupes;
 mod errorwrapper;
 mod indexer;
+mod util;
 
 use clap::App;
 use crate::errorwrapper::ErrorWrapper;

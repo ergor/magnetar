@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en" class="fit_content">
+<html lang="en" class="fit-content">
 <head>
     <meta charset="UTF-8">
     <title>report - magnetar</title>
     <style>
-        #filter_section {
+        #filter-section {
             width: max-content;
             border-bottom: black solid 2px;
             border-right: black solid 2px;
@@ -13,39 +13,70 @@
             padding-bottom: 5px;
             margin-bottom: 15px;
         }
-        .fit_content {
-            width: min-content;
+        #heading-section {
+            margin-bottom: 15px;
+            font-size: 11pt;
         }
-        .table {
-            min-width: 100%;
-            border-collapse: collapse;
+
+        .monospace {
             font-family: monospace, "Courier New", Courier, Monaco;
             font-size: 9pt;
             white-space: nowrap;
         }
-        .table th {
+        .fit-content {
+            width: min-content;
+        }
+
+        .summary-table {
+        }
+        .summary-table th {
+            padding-right: 20px;
+        }
+        .summary-table th:last-child {
+            padding-right: 1px;
+        }
+        .summary-table tr:first-child th {
+            text-align: center;
+        }
+        .summary-table tr:not(:first-child) th {
+            text-align: right;
+        }
+        .summary-table td {
+            text-align: center;
+            padding-right: 20px;
+        }
+        .summary-table td:last-child {
+            padding-right: 1px;
+        }
+
+        .delta-table {
+            min-width: 100%;
+            border-collapse: collapse;
+        }
+        .delta-table th {
             text-align: left;
             border-bottom-style: solid;
             border-bottom-width: 2px;
             padding-right: 20px;
         }
-        .table td {
+        .delta-table td {
             border-bottom-style: solid;
             border-bottom-width: 1px;
             padding-right: 20px;
         }
-        .table th:first-child {
+        .delta-table th:first-child {
             padding-left: 20px;
         }
-        .table td:first-child {
+        .delta-table td:first-child {
             padding-left: 20px;
         }
-        .table .slim {
+        .delta-table .slim {
             padding-right: 5px;
         }
-        .table .path {
+        .delta-table .path {
             color: #00000070;
         }
+
         .no-change {
         }
         .modification {
@@ -59,7 +90,7 @@
         }
     </style>
 </head>
-<body class="fit_content">
+<body class="fit-content">
 <script>
     function setAll(className, state) {
         var elems = document.getElementsByClassName(className);
@@ -80,7 +111,7 @@
         setAll("deletion", !event.checked)
     }
 </script>
-<div id="filter_section">
+<div id="filter-section">
     <h4>Delta type filters</h4>
 
     <input checked type="checkbox" id="cb_no-change" onchange="onchangeCbNoChange(this)">
@@ -96,15 +127,22 @@
     <label for="cb_deletion">Deletion</label>
 </div>
 
-<div class="fit_content">
-    <table class="table">
-        <!--
-        <colgroup>
-            <col style="width: 20%">
-            <col style="width: 50%">
-            <col style="width: 30%">
-        </colgroup>
-        -->
+<div id="heading-section" class="fit-content monospace">
+    <table class="summary-table">
+        <tr>
+            <td></td> <th>source</th> <th>destination</th>
+        </tr>
+        <tr>
+            <th>db</th> <td>${db-a}</td> <td>${db-b}</td>
+        </tr>
+        <tr>
+            <th>roots</th> <td>${roots-a}</td> <td>${roots-b}</td>
+        </tr>
+    </table>
+</div>
+
+<div class="fit-content">
+    <table class="delta-table monospace">
         <tr>
             <th colspan="2">root</th>
             <th>path</th>
