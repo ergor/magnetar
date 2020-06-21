@@ -35,8 +35,8 @@ pub fn run(args: &clap::ArgMatches<'_>) -> ConvertibleResult<()> {
     let db_path_a = args.value_of("first-index").expect("path to database is required");
     let db_path_b = args.value_of("second-index").expect("path to database is required");
 
-    let first_index = fetch_fs_nodes(db_path_a)?;
-    let second_index = fetch_fs_nodes(db_path_b)?;
+    let first_index = FsNode::select_n(db_path_a)?;
+    let second_index = FsNode::select_n(db_path_b)?;
 
     let attrs_opt =
         if args.is_present("mode-all") {
@@ -81,31 +81,6 @@ pub fn run(args: &clap::ArgMatches<'_>) -> ConvertibleResult<()> {
     report::write(output_stream, deltas, summary)?;
 
     Ok(())
-}
-
-fn fetch_fs_nodes(db_path: &str) -> crate::ConvertibleResult<Vec<FsNode>> {
-    log::debug!("fetching fs_nodes from '{}'", db_path);
-
-    let index_db_path = Path::new(db_path);
-    if !index_db_path.exists() {
-        let error = AppError::WithMessage(
-            format!("database '{}' not found.", index_db_path.to_str().unwrap_or("(.to_str() failed)"))
-        );
-        log::error!("{}", error);
-        return Err(ErrorWrapper::AppError(error))
-    }
-
-    let mut fs_nodes = Vec::new();
-    { // open for db work
-        let conn = rusqlite::Connection::open(index_db_path)?;
-        log::debug!("{}: database connection opened", index_db_path.to_string_lossy().as_ref());
-        std::mem::drop(fs_nodes);
-        fs_nodes = FsNode::select(&conn)?;
-        log::debug!("{}: retrieved {} rows.", index_db_path.to_string_lossy().as_ref(), fs_nodes.len());
-    } // drops all db connections
-    log::debug!("{}: database connection closed", index_db_path.to_string_lossy().as_ref());
-
-    Ok(fs_nodes)
 }
 
 fn roots(args: &clap::ArgMatches<'_>, arg_name: &str) -> Vec<String> {

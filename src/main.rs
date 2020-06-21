@@ -79,6 +79,9 @@ fn main() -> crate::ConvertibleResult<()> {
     else if let Some(args) = args.subcommand_matches("compare") {
         comparator::run(args)?;
     }
+    else if let Some(args) = args.subcommand_matches("dupes") {
+        dupes::run(args)?;
+    }
 
     return Ok(());
 }

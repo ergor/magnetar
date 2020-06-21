@@ -1,6 +1,9 @@
 use std::fmt;
 use rusqlite::types::{FromSqlResult, ValueRef};
 use std::fmt::Display;
+use std::path::Path;
+use crate::apperror::AppError;
+use crate::errorwrapper::ErrorWrapper;
 
 ///
 /// sha1_checksum: 40 chars long
@@ -171,6 +174,31 @@ impl FsNode {
             inode: row.get("inode")?,
             nlinks: row.get("nlinks")?,
         })
+    }
+
+    pub fn select_n(db_path: &str) -> crate::ConvertibleResult<Vec<FsNode>> {
+        log::debug!("fetching fs_nodes from '{}'", db_path);
+
+        let index_db_path = Path::new(db_path);
+        if !index_db_path.exists() {
+            let error = AppError::WithMessage(
+                format!("database '{}' not found.", index_db_path.to_str().unwrap_or("(.to_str() failed)"))
+            );
+            log::error!("{}", error);
+            return Err(ErrorWrapper::AppError(error))
+        }
+
+        let mut fs_nodes = Vec::new();
+        { // open for db work
+            let conn = rusqlite::Connection::open(index_db_path)?;
+            log::debug!("{}: database connection opened", index_db_path.to_string_lossy().as_ref());
+            std::mem::drop(fs_nodes);
+            fs_nodes = FsNode::select(&conn)?;
+            log::debug!("{}: retrieved {} rows.", index_db_path.to_string_lossy().as_ref(), fs_nodes.len());
+        } // drops all db connections
+        log::debug!("{}: database connection closed", index_db_path.to_string_lossy().as_ref());
+
+        Ok(fs_nodes)
     }
 }
 
