@@ -14,11 +14,12 @@ use std::path::{Path, PathBuf};
 use std::io;
 use crate::comparator::delta::Attribute;
 
+
 macro_rules! validate_roots {
     ($roots_ref:expr, $index_name:literal) => {
         {
             log::debug!("validating roots: '{}'...", $index_name);
-            if let Err(invalid_roots) = _validate_roots($roots_ref) {
+            if let Err(invalid_roots) = validate_roots($roots_ref) {
                 let error = AppError::WithMessage(
                     format!("index '{}': invalid roots: {:?}\nroots cannot be direct descendants of each other", $index_name, invalid_roots)
                 );
@@ -37,9 +38,21 @@ pub fn run(args: &clap::ArgMatches<'_>) -> ConvertibleResult<()> {
     let first_index = fetch_fs_nodes(db_path_a)?;
     let second_index = fetch_fs_nodes(db_path_b)?;
 
-    let attrs = match args.value_of("mode") {
-        None => Attribute::all(),
-        Some(m) => Attribute::from_arg(m)?
+    let attrs_opt =
+        if args.is_present("mode-all") {
+            Some(Attribute::all())
+        } else if args.is_present("mode-min") {
+            Some(Attribute::minimum())
+        } else { None };
+
+    let attrs = match attrs_opt {
+        Some(a) => a,
+        None => {
+            match args.value_of("mode") {
+                Some(m) => Attribute::from_arg(m)?,
+                None => Attribute::medium(),
+            }
+        }
     };
 
     let roots_a = roots(args, "root-a");
@@ -112,7 +125,7 @@ fn roots(args: &clap::ArgMatches<'_>, arg_name: &str) -> Vec<String> {
     return roots;
 }
 
-fn _validate_roots(roots: &Vec<String>) -> Result<(), HashSet<String>> {
+fn validate_roots(roots: &Vec<String>) -> Result<(), HashSet<String>> {
     let mut invalid_roots: HashSet<String> = HashSet::new();
 
     for i in 0..roots.len() {
@@ -175,6 +188,19 @@ pub fn cmdline<'a>() -> clap::App<'a, 'a> {
             .value_name("MODE")
             .next_line_help(true)
             .help("What attributes should count towards being a change.\n\
+                  If not specified, defaults to 'csugpcm'.\n\
                   node(t)ype, (c)hecksum, (s)ize, (u)ser, (g)roup, (p)ermissions,\n\
                   (b)irthdate, (m)odifieddate, (l)inksto, (i)node, (n)links"))
+        .arg(clap::Arg::with_name("mode-all")
+            .long("mode-all")
+            .short("A")
+            .conflicts_with_all(&["mode", "mode-min"])
+            .takes_value(false)
+            .help("Enable all flags for mode. Equivalent to --mode tcsugpbmlin"))
+        .arg(clap::Arg::with_name("mode-min")
+            .long("mode-min")
+            .short("M")
+            .conflicts_with_all(&["mode", "mode-all"])
+            .takes_value(false)
+            .help("Enable a small subset of flags for mode. Equivalent to --mode csm"))
 }

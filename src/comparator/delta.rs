@@ -67,7 +67,6 @@ impl Attribute {
 
     pub fn medium() -> HashSet<Attribute> {
         let mut set = HashSet::new();
-        set.insert(Attribute::NodeType);
         set.insert(Attribute::Checksum);
         set.insert(Attribute::Size);
         set.insert(Attribute::User);
@@ -78,9 +77,8 @@ impl Attribute {
         set
     }
 
-    pub fn lite() -> HashSet<Attribute> {
+    pub fn minimum() -> HashSet<Attribute> {
         let mut set = HashSet::new();
-        set.insert(Attribute::NodeType);
         set.insert(Attribute::Checksum);
         set.insert(Attribute::Size);
         set.insert(Attribute::ModifiedDate);
