@@ -73,13 +73,13 @@ fn main() -> crate::ConvertibleResult<()> {
         .start()
         .unwrap_or_else(|e| panic!("Logger initialization failed with {}", e));
 
-    if let Some(args) = args.subcommand_matches("index") {
+    if let Some(args) = args.subcommand_matches("idx") {
         indexer::run(args)?;
     }
-    else if let Some(args) = args.subcommand_matches("compare") {
+    else if let Some(args) = args.subcommand_matches("cmp") {
         comparator::run(args)?;
     }
-    else if let Some(args) = args.subcommand_matches("dupes") {
+    else if let Some(args) = args.subcommand_matches("dup") {
         dupes::run(args)?;
     }
 

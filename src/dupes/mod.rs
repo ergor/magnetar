@@ -14,7 +14,7 @@ pub fn run(args: &clap::ArgMatches<'_>) -> ConvertibleResult<()>{
 }
 
 pub fn cmdline<'a>() -> clap::App<'a, 'a> {
-    clap::App::new("dupes")
+    clap::App::new("dup")
         .about("Finds duplicates in indexing-run database(s).")
         .setting(clap::AppSettings::TrailingVarArg)
         .arg(clap::Arg::with_name("indexes")

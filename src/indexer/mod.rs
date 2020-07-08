@@ -62,7 +62,7 @@ pub fn run(args: &clap::ArgMatches<'_>) -> crate::ConvertibleResult<()> {
 }
 
 pub fn cmdline<'a>() -> clap::App<'a, 'a> {
-    clap::App::new("index")
+    clap::App::new("idx")
         .about("Create index of chosen directories and store in a database file.")
         .setting(clap::AppSettings::TrailingVarArg)
         .arg(clap::Arg::with_name("daemonize")

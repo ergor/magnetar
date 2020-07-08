@@ -121,7 +121,7 @@ fn validate_roots(roots: &Vec<String>) -> Result<(), HashSet<String>> {
 }
 
 pub fn cmdline<'a>() -> clap::App<'a, 'a> {
-    clap::App::new("compare")
+    clap::App::new("cmp")
         .about("Compare two database files of indexing-runs and generate html report of differences.")
         .arg(clap::Arg::with_name("first-index")
             .short("a")
