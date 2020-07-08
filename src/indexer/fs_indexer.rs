@@ -32,16 +32,8 @@ pub fn depth_first_indexer(dir_path: &str) -> io::Result<Vec<FsNode>> {
         if next_child.is_some() {
             let child: DirEntry = next_child.unwrap()?;
 
-            match process_single_dir_entry(&child, &mut read_buf) {
-                Ok(fs_node) => {
-                    fs_nodes.push(fs_node);
-                }
-                Err(e) => {
-                    let filename = child.path();
-                    let filename = filename.to_string_lossy();
-                    log::error!("'{}': could not read file info: {}", filename, e);
-                },
-            }
+            let fs_node = process_single_dir_entry(&child, &mut read_buf);
+            fs_nodes.push(fs_node);
 
             if child.file_type()?.is_dir() {
                 let child_path = child.path();
@@ -68,77 +60,92 @@ pub fn depth_first_indexer(dir_path: &str) -> io::Result<Vec<FsNode>> {
     Ok(fs_nodes)
 }
 
-fn process_single_dir_entry(entry: &fs::DirEntry, read_buf: &mut [u8]) -> crate::ConvertibleResult<FsNode> {
+fn process_single_dir_entry(entry: &fs::DirEntry, read_buf: &mut [u8]) -> FsNode {
 
     if entry.path().is_relative() {
         panic!("TODO: convert relative paths to absolute paths");
     }
 
-    let start_time = Instant::now();
-    log::trace!("'{}': collecting file metadata...", entry.path().to_string_lossy());
 
-    let file_type = entry.file_type()?;
-    let metadata = entry.metadata()?;
+    let entry_path = entry.path();
+    let entry_path_lossy = entry_path.to_string_lossy();
+    let start_time = Instant::now();
+
+    log::trace!("'{}': collecting file metadata...", entry_path_lossy);
 
     let mut fs_node = FsNode::new();
 
+    fs_node.name = entry_path_lossy.clone().to_string();
     fs_node.node_type =
-        if file_type.is_dir() {
-            NodeType::Directory
-        } else if file_type.is_file() {
-            NodeType::File
-        } else if file_type.is_symlink() {
-            NodeType::Symlink
-        } else {
-            NodeType::Other
+        match entry.file_type() {
+            Ok(ft) => {
+                if ft.is_dir() {
+                    NodeType::Directory
+                } else if ft.is_file() {
+                    NodeType::File
+                } else if ft.is_symlink() {
+                    NodeType::Symlink
+                } else {
+                    NodeType::Other
+                }
+            },
+            Err(e) => {
+                log::warn!("'{}': could not read node type: {}", entry_path_lossy, e);
+                NodeType::Error
+            }
         };
 
-    match entry.file_name().to_str() { // TODO: rewrite using the ?-operator when the Try trait becomes stable
-        Some(file_name) => fs_node.name = String::from(file_name),
-        None => return Err(ErrorWrapper::AppError(AppError::NoneError)),
-    };
+    fn date_to_i64(path_for_log: &str, date: io::Result<SystemTime>) -> i64 {
+        match date {
+            Ok(systime) =>
+                systime.duration_since(SystemTime::UNIX_EPOCH)
+                .map_or(0, |d| d.as_secs() as i64),
+            Err(e) => {
+                log::warn!("'{}': could not read date: {}", path_for_log, e);
+                0
+            },
+        }
+    }
 
-    fs_node.size = metadata.len() as i64;
-    fs_node.uid = metadata.st_uid();
-    fs_node.gid = metadata.st_gid();
-    fs_node.permissions = metadata.st_mode();
-
-    fs_node.creation_date = match metadata.created() {
-        Ok(systime) => systime.duration_since(SystemTime::UNIX_EPOCH)?.as_secs() as i64,
-        Err(_) => 0,
-    };
-
-    fs_node.modified_date = match metadata.modified() {
-        Ok(systime) => systime.duration_since(SystemTime::UNIX_EPOCH)?.as_secs() as i64,
-        Err(_) => 0,
-    };
+    match entry.metadata() {
+        Ok(metadata) => {
+            fs_node.size = metadata.len() as i64;
+            fs_node.uid = metadata.st_uid();
+            fs_node.gid = metadata.st_gid();
+            fs_node.permissions = metadata.st_mode();
+            fs_node.inode = metadata.st_ino() as i64;
+            fs_node.nlinks = metadata.st_nlink() as i64;
+            fs_node.creation_date = date_to_i64(entry_path_lossy.as_ref(), metadata.created());
+            fs_node.modified_date = date_to_i64(entry_path_lossy.as_ref(), metadata.modified());
+        },
+        Err(e) => {
+            log::warn!("'{}': could not read metadata: {}", entry_path_lossy, e);
+        }
+    }
 
     fs_node.parent_path = entry.path().parent().map_or_else(
-        || "[ERR: NO_PARENT]".to_string(),
+        || String::new(), // root or relative path
         |p| String::from(p.to_string_lossy())
     );
 
     if let NodeType::Symlink = fs_node.node_type {
-        match fs::read_link(entry.path())?.to_str() { // TODO: rewrite using the ?-operator when the Try trait becomes stable
-            Some(path_str) => fs_node.links_to = String::from(path_str),
-            None => return Err(ErrorWrapper::AppError(AppError::NoneError)),
+        match fs::read_link(entry.path()) {
+            Ok(path) => fs_node.links_to = path.to_string_lossy().to_string(),
+            Err(e) => log::warn!("'{}': could not resolve symlink path: {}", entry_path_lossy, e),
         }
     }
 
     fs_node.sha1_checksum =
         if let NodeType::File = fs_node.node_type {
-            String::from(checksum(read_buf, &entry)?)
+            String::from(checksum(read_buf, &entry).unwrap_or("[ERR]".to_string()))
         } else {
             String::new()
         };
-
-    fs_node.inode = metadata.st_ino() as i64;
-    fs_node.nlinks = metadata.st_nlink() as i64;
     // TODO: parent id
 
-    log::trace!("'{}': indexing of file done. time elapsed: {} ms.", entry.path().to_string_lossy(), start_time.elapsed().as_millis());
+    log::trace!("'{}': indexing of file done. time elapsed: {} ms.", entry_path_lossy, start_time.elapsed().as_millis());
 
-    Ok(fs_node)
+    fs_node
 }
 
 fn checksum(read_buf: &mut [u8], file_entry: &fs::DirEntry) -> io::Result<String> {

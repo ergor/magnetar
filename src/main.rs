@@ -62,9 +62,9 @@ fn main() -> crate::ConvertibleResult<()> {
                 .log_to_file()
                 .directory("magnetar_logs")
                 .rotate(
-                    flexi_logger::Criterion::Size(1_000_000),
+                    flexi_logger::Criterion::Size(100_000_000),
                     flexi_logger::Naming::Timestamps,
-                    flexi_logger::Cleanup::KeepLogFiles(3)
+                    flexi_logger::Cleanup::KeepLogFiles(5)
                 )
                 .duplicate_to_stderr(flexi_logger::Duplicate::Warn)
         } else {

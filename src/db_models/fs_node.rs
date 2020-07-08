@@ -35,7 +35,8 @@ pub enum NodeType {
     File,
     Directory,
     Symlink,
-    Other
+    Other,
+    Error
 }
 
 impl NodeType {
@@ -46,6 +47,7 @@ impl NodeType {
             1 => Some(NodeType::Directory),
             2 => Some(NodeType::Symlink),
             3 => Some(NodeType::Other),
+            4 => Some(NodeType::Error),
             _=> None,
         }
     }
@@ -56,6 +58,7 @@ impl NodeType {
             NodeType::Directory => 1,
             NodeType::Symlink => 2,
             NodeType::Other => 3,
+            NodeType::Error => 4,
         }
     }
 }
@@ -73,6 +76,7 @@ impl Display for NodeType {
             NodeType::Directory => { "dir" },
             NodeType::Symlink => { "symlink" },
             NodeType::Other => { "(other)" },
+            NodeType::Error => { "(none (read error))" },
         };
         write!(f, "{}", val)
     }

@@ -174,6 +174,7 @@ impl<'a> Delta<'a> {
                 NodeType::Directory => {"D"},
                 NodeType::Symlink => {"L"},
                 NodeType::Other => {"O"},
+                NodeType::Error => {"ERR"},
             }
         }
         match self.delta_type {
