@@ -1,13 +1,14 @@
+use crate::apperror::AppError;
 use crate::db_models::fs_node::{FsNode, NodeType};
 use crate::errorwrapper::ErrorWrapper;
-use crate::apperror::AppError;
+use std::cell::RefCell;
+use std::fs::{DirEntry, ReadDir};
 use std::fs;
 use std::io::{Read};
 use std::io;
 use std::os::linux::fs::MetadataExt;
+use std::thread;
 use std::time::{SystemTime, Instant};
-use std::fs::{DirEntry, ReadDir};
-use std::cell::RefCell;
 
 const READ_BUF_SZ: usize = 1024 * 1024;
 
@@ -137,7 +138,7 @@ fn process_single_dir_entry(entry: &fs::DirEntry, read_buf: &mut [u8]) -> FsNode
 
     fs_node.sha1_checksum =
         if let NodeType::File = fs_node.node_type {
-            String::from(checksum(read_buf, &entry).unwrap_or("[ERR]".to_string()))
+            checksum(read_buf, &entry)
         } else {
             String::new()
         };
@@ -148,16 +149,48 @@ fn process_single_dir_entry(entry: &fs::DirEntry, read_buf: &mut [u8]) -> FsNode
     fs_node
 }
 
-fn checksum(read_buf: &mut [u8], file_entry: &fs::DirEntry) -> io::Result<String> {
+const CHECKSUM_ERR_RESULT: &str = "ERR";
 
+fn checksum(read_buf: &mut [u8], file_entry: &fs::DirEntry) -> String {
+
+    let path = file_entry.path();
+    let path_lossy = path.to_string_lossy();
     let start_time = Instant::now();
     log::trace!("'{}': calculating sha1 checksum...", file_entry.path().to_string_lossy());
 
-    let mut file = fs::File::open(file_entry.path())?;
+    let mut file = match fs::File::open(file_entry.path()) {
+        Ok(f) => f,
+        Err(e) => {
+            log::warn!("'{}': could not open file for reading: {}", path_lossy, e);
+            return CHECKSUM_ERR_RESULT.to_string();
+        },
+    };
+
     let mut sha1digest = sha1::Sha1::new();
+    let mut read_retries = 0;
 
     loop {
-        let bytes_read = file.read(read_buf)?;
+        if read_retries > 10 {
+            log::warn!("'{}': exceeded maximum read retry limit. abort.", path_lossy);
+            return CHECKSUM_ERR_RESULT.to_string();
+        }
+        let bytes_read = match file.read(read_buf) {
+            Ok(n) => n,
+            Err(e) => {
+                match e.kind() {
+                    io::ErrorKind::Interrupted => {
+                        log::debug!("'{}': {}: retrying...", path_lossy, e);
+                        read_retries += 1;
+                        thread::sleep(std::time::Duration::from_millis(100));
+                        continue;
+                    }
+                    _ => {
+                        log::warn!("'{}': failed while reading file: {}", path_lossy, e);
+                        return CHECKSUM_ERR_RESULT.to_string();
+                    }
+                }
+            },
+        };
         if bytes_read > 0 {
             sha1digest.update(&read_buf[..bytes_read]);
         } else {
@@ -165,7 +198,7 @@ fn checksum(read_buf: &mut [u8], file_entry: &fs::DirEntry) -> io::Result<String
         }
     }
 
-    log::trace!("'{}': sha1 checksum calculated. time elapsed: {} ms.", file_entry.path().to_string_lossy(), start_time.elapsed().as_millis());
+    log::trace!("'{}': sha1 checksum calculated. time elapsed: {} ms.", path_lossy, start_time.elapsed().as_millis());
 
-    Ok(sha1digest.digest().to_string())
+    sha1digest.digest().to_string()
 }
