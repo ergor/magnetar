@@ -25,7 +25,7 @@ pub fn start(db_path: &str, directories: clap::Values<'_>) -> crate::Convertible
                 log::debug!("'{}': db insertions OK.", dir);
             },
             Err(e) => {
-                log::error!("'{}': abort indexing of directory. reason: {}", dir, e);
+                log::warn!("'{}': abort indexing of directory. reason: {}", dir, e);
             },
         };
     }

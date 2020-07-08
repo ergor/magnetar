@@ -30,20 +30,31 @@ pub fn depth_first_indexer(dir_path: &str) -> io::Result<Vec<FsNode>> {
     while !dir_iter_stack.is_empty() {
         let current_dir_iter = dir_iter_stack.last().unwrap(); // we know it's Some, because of loop condition
         let next_child = current_dir_iter.borrow_mut().next();
-        if next_child.is_some() {
-            let child: DirEntry = next_child.unwrap()?;
+        if let Some(child) = next_child {
+            match child {
+                Ok(child) => {
+                    let fs_node = process_single_dir_entry(&child, &mut read_buf);
+                    fs_nodes.push(fs_node);
 
-            let fs_node = process_single_dir_entry(&child, &mut read_buf);
-            fs_nodes.push(fs_node);
+                    if child.file_type().map_or(false, |c| c.is_dir()) {
+                        let child_path = child.path();
+                        let child_path_lossy = child_path.to_string_lossy();
 
-            if child.file_type()?.is_dir() {
-                let child_path = child.path();
-                let child_path_lossy = child_path.to_string_lossy();
-                log::debug!("'{}': now descending into...", child_path_lossy);
-                dir_iter_stack.push(
-                    RefCell::new(fs::read_dir(child.path())?)
-                );
-                visit_log_stack.push((Instant::now(), child_path_lossy.to_string()));
+                        match fs::read_dir(child.path()) {
+                            Ok(dir_iter) => {
+                                log::debug!("'{}': now descending into...", child_path_lossy);
+                                dir_iter_stack.push(RefCell::new(dir_iter));
+                                visit_log_stack.push((Instant::now(), child_path_lossy.to_string()));
+                            },
+                            Err(e) => log::warn!("'{}': failed to descend: {}", child_path_lossy, e),
+                        }
+                    }
+                },
+                Err(e) => {
+                    let path = visit_log_stack.last()
+                        .map_or_else(|| "(None)".to_string(), |(_, path)| path.clone());
+                    log::warn!("'{}': next child was Err: {}", path, e);
+                }
             }
         }
         else {
@@ -119,9 +130,7 @@ fn process_single_dir_entry(entry: &fs::DirEntry, read_buf: &mut [u8]) -> FsNode
             fs_node.creation_date = date_to_i64(entry_path_lossy.as_ref(), metadata.created());
             fs_node.modified_date = date_to_i64(entry_path_lossy.as_ref(), metadata.modified());
         },
-        Err(e) => {
-            log::warn!("'{}': could not read metadata: {}", entry_path_lossy, e);
-        }
+        Err(e) => log::warn!("'{}': could not read metadata: {}", entry_path_lossy, e),
     }
 
     fs_node.parent_path = entry.path().parent().map_or_else(
