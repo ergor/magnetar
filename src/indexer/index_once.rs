@@ -5,27 +5,27 @@ pub fn start(db_path: &str, directories: clap::Values<'_>) -> crate::Convertible
 
     let start_time = Instant::now();
     log::debug!("index_once.start: begin...");
-    log::debug!("{}: opening connection to database...", db_path);
+    log::debug!("'{}': opening connection to database...", db_path);
     let conn = rusqlite::Connection::open(db_path)?;
     create_tables::execute(&conn)?;
-    log::debug!("{}: open OK; tables initialized", db_path);
+    log::debug!("'{}': open OK; tables initialized", db_path);
 
     let directories: Vec<String> = directories.map(|v| v.to_string()).collect();
     log::debug!("directories selected for indexing: '{}'", directories.join(", "));
     for dir in directories {
         match fs_indexer::depth_first_indexer(dir.as_str()) {
             Ok(fs_nodes) => {
-                log::debug!("{}: indexing done, inserting into database...", dir);
+                log::debug!("'{}': indexing done, inserting into database...", dir);
                 for fs_node in fs_nodes {
                     log::trace!("INSERT {:?}", fs_node);
                     if let Err(e) = fs_node.insert(&conn) {
                         log::error!("could not insert fsnode entry into db: {}", e);
                     }
                 }
-                log::debug!("{}: db insertions OK.", dir);
+                log::debug!("'{}': db insertions OK.", dir);
             },
             Err(e) => {
-                log::error!("{}: could not index directory: {}", dir, e);
+                log::error!("'{}': abort indexing of directory. reason: {}", dir, e);
             },
         };
     }

@@ -20,7 +20,7 @@ pub fn depth_first_indexer(dir_path: &str) -> io::Result<Vec<FsNode>> {
     let mut visit_log_stack: Vec<(Instant, String)> = Vec::new(); // for logging purposes
 
     let start_time = Instant::now();
-    log::debug!("depth_first_indexer: {}: start...", dir_path);
+    log::debug!("depth_first_indexer: '{}': start...", dir_path);
 
     let root_level_entries_iter = fs::read_dir(dir_path)?;
     dir_iter_stack.push(RefCell::new(root_level_entries_iter));
@@ -37,18 +37,20 @@ pub fn depth_first_indexer(dir_path: &str) -> io::Result<Vec<FsNode>> {
                     fs_nodes.push(fs_node);
                 }
                 Err(e) => {
-                    log::error!("could not read file info: {}", e);
+                    let filename = child.path();
+                    let filename = filename.to_string_lossy();
+                    log::error!("'{}': could not read file info: {}", filename, e);
                 },
             }
 
             if child.file_type()?.is_dir() {
                 let child_path = child.path();
-                let child_path = child_path.to_str().unwrap_or("(unwrap error)");
-                log::debug!("{}: now descending into...", child_path);
+                let child_path_lossy = child_path.to_string_lossy();
+                log::debug!("'{}': now descending into...", child_path_lossy);
                 dir_iter_stack.push(
-                    RefCell::new(fs::read_dir(child_path)?)
+                    RefCell::new(fs::read_dir(child.path())?)
                 );
-                visit_log_stack.push((Instant::now(), child_path.to_string()));
+                visit_log_stack.push((Instant::now(), child_path_lossy.to_string()));
             }
         }
         else {
@@ -56,12 +58,12 @@ pub fn depth_first_indexer(dir_path: &str) -> io::Result<Vec<FsNode>> {
                 Some((time, path)) => (time.elapsed().as_millis(), path),
                 None => (u128::max_value(), "(unwrap error)".to_string())
             };
-            log::debug!("{}: directory indexing done. time elapsed: {} ms.", visited_path, time_elapsed);
+            log::debug!("'{}': directory indexing done. time elapsed: {} ms.", visited_path, time_elapsed);
             dir_iter_stack.pop();
         }
     }
 
-    log::debug!("depth_first_indexer: {}: done. time elapsed: {} ms.", dir_path, start_time.elapsed().as_millis());
+    log::debug!("depth_first_indexer: '{}': done. time elapsed: {} ms.", dir_path, start_time.elapsed().as_millis());
 
     Ok(fs_nodes)
 }
@@ -73,7 +75,7 @@ fn process_single_dir_entry(entry: &fs::DirEntry, read_buf: &mut [u8]) -> crate:
     }
 
     let start_time = Instant::now();
-    log::trace!("{}: collecting file metadata...", entry.path().to_str().unwrap_or("(unwrap error)"));
+    log::trace!("'{}': collecting file metadata...", entry.path().to_string_lossy());
 
     let file_type = entry.file_type()?;
     let metadata = entry.metadata()?;
@@ -112,8 +114,8 @@ fn process_single_dir_entry(entry: &fs::DirEntry, read_buf: &mut [u8]) -> crate:
     };
 
     fs_node.parent_path = entry.path().parent().map_or_else(
-        || String::new(),
-        |p| String::from(p.to_str().unwrap_or(""))
+        || "[ERR: NO_PARENT]".to_string(),
+        |p| String::from(p.to_string_lossy())
     );
 
     if let NodeType::Symlink = fs_node.node_type {
@@ -134,7 +136,7 @@ fn process_single_dir_entry(entry: &fs::DirEntry, read_buf: &mut [u8]) -> crate:
     fs_node.nlinks = metadata.st_nlink() as i64;
     // TODO: parent id
 
-    log::trace!("{}: indexing of file done. time elapsed: {} ms.", entry.path().to_str().unwrap_or("(unwrap error)"), start_time.elapsed().as_millis());
+    log::trace!("'{}': indexing of file done. time elapsed: {} ms.", entry.path().to_string_lossy(), start_time.elapsed().as_millis());
 
     Ok(fs_node)
 }
@@ -142,7 +144,7 @@ fn process_single_dir_entry(entry: &fs::DirEntry, read_buf: &mut [u8]) -> crate:
 fn checksum(read_buf: &mut [u8], file_entry: &fs::DirEntry) -> io::Result<String> {
 
     let start_time = Instant::now();
-    log::trace!("{}: calculating sha1 checksum...", file_entry.path().to_str().unwrap_or("(unwrap error)"));
+    log::trace!("'{}': calculating sha1 checksum...", file_entry.path().to_string_lossy());
 
     let mut file = fs::File::open(file_entry.path())?;
     let mut sha1digest = sha1::Sha1::new();
@@ -156,7 +158,7 @@ fn checksum(read_buf: &mut [u8], file_entry: &fs::DirEntry) -> io::Result<String
         }
     }
 
-    log::trace!("{}: sha1 checksum calculated. time elapsed: {} ms.", file_entry.path().to_str().unwrap_or("(unwrap error)"), start_time.elapsed().as_millis());
+    log::trace!("'{}': sha1 checksum calculated. time elapsed: {} ms.", file_entry.path().to_string_lossy(), start_time.elapsed().as_millis());
 
     Ok(sha1digest.digest().to_string())
 }

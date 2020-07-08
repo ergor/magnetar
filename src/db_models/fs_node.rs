@@ -182,7 +182,7 @@ impl FsNode {
         let index_db_path = Path::new(db_path);
         if !index_db_path.exists() {
             let error = AppError::WithMessage(
-                format!("database '{}' not found.", index_db_path.to_str().unwrap_or("(.to_str() failed)"))
+                format!("database '{}' not found.", index_db_path.to_string_lossy())
             );
             log::error!("{}", error);
             return Err(ErrorWrapper::AppError(error))
