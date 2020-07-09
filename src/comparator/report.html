@@ -76,6 +76,16 @@
         .delta-table .path {
             color: #00000070;
         }
+        .delta-table tr .dir {
+            cursor: pointer;
+        }
+
+        .collapsed td {
+            border-bottom-style: none;
+        }
+        .collapsed-child {
+            display: none;
+        }
 
         .no-change {
         }
@@ -110,7 +120,47 @@
     function onchangeCbDeletion(event) {
         setAll("deletion", !event.checked)
     }
+    function onclickCollapse(event) {
+        let clicked_row = event.parentNode;
+        let parent_path = event.innerText;
+
+        let hide = !clicked_row.classList.contains("collapsed");
+
+        let child_rows = document.getElementsByClassName("delta-table")[0].tBodies[0].rows;
+        for (row of child_rows) {
+            let child_path = row.cells[2].innerText;
+            if (child_path !== parent_path // dont hide the parent
+                && child_path.startsWith(parent_path))
+            {
+                if (hide) {
+                    row.classList.add("collapsed-child");
+                } else {
+                    row.classList.remove("collapsed-child");
+                }
+            }
+        }
+
+        if (hide) {
+            let dummy_row = document.createElement("tr");
+            dummy_row.id = parent_path;
+
+            dummy_row.insertCell(0);
+            let type_cell = dummy_row.insertCell(1);
+            let path_cell = dummy_row.insertCell(2);
+            dummy_row.insertCell(3);
+
+            type_cell.className = "slim";
+            path_cell.innerText = "...";
+
+            clicked_row.parentNode.insertBefore(dummy_row, clicked_row.nextSibling);
+            clicked_row.classList.add("collapsed");
+        } else {
+            document.getElementById(parent_path).remove();
+            clicked_row.classList.remove("collapsed");
+        }
+    }
 </script>
+
 <div id="filter-section">
     <h4>Delta type filters</h4>
 
@@ -143,39 +193,18 @@
 
 <div class="fit-content">
     <table class="delta-table monospace">
-        <tr>
-            <th colspan="2">root</th>
-            <th>path</th>
-            <th>info</th>
-        </tr>
-        ${rows}
-        <!-- sample rows
-        <tr class="no-change">
-            <td>/tmp</td>
-            <td>a</td>
-            <td>file</td>
-            <td>unchanged</td>
-        </tr>
-        <tr class="modification">
-            <td>/tmp</td>
-            <td>b</td>
-            <td>file</td>
-            <td>modified</td>
-        </tr>
-        <tr class="creation">
-            <td>/tmp</td>
-            <td>c</td>
-            <td>file</td>
-            <td>created</td>
-        </tr>
-        <tr class="deletion">
-            <td>/tmp</td>
-            <td>d</td>
-            <td>file</td>
-            <td>deleted</td>
-        </tr>
-        -->
+        <thead>
+            <tr>
+                <th colspan="2">root</th>
+                <th>path</th>
+                <th>info</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${rows}
+        </tbody>
     </table>
 </div>
+
 </body>
 </html>

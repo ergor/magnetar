@@ -2,12 +2,13 @@ use crate::comparator::delta::Delta;
 use std::io::Write;
 use std::io;
 use std::path::PathBuf;
+use crate::db_models::fs_node::NodeType;
 
 const TR: &str =
     r#"<tr class="${class}">
         <td>${root}</td>
         <td class="slim">${ftype}</td>
-        <td>${vpath}</td>
+        <td${vpath_attrs}>${vpath}</td>
         <td>${info}</td>
     </tr>"#;
 
@@ -41,7 +42,13 @@ fn make_rows(deltas: &Vec<Delta<'_>>) -> String {
     for delta in deltas {
         let mut row = TR.replace("${class}", delta.delta_type().css_class());
         row = row.replace("${root}", delta.root_path_str());
-        row = row.replace("${ftype}", delta.file_type());
+        row = row.replace("${ftype}", delta.file_type().to_str());
+        row = row.replace("${vpath_attrs}",
+                          if let NodeType::Directory = delta.file_type() {
+                              " class=\"dir\" onclick=\"onclickCollapse(this)\""
+                          } else {
+                              ""
+                          });
 
         let v_path_str = delta.virtual_path_str();
         let v_path_buf = PathBuf::from(v_path_str);

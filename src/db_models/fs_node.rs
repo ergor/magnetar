@@ -61,6 +61,16 @@ impl NodeType {
             NodeType::Error => 4,
         }
     }
+
+    pub fn to_str(&self) -> &str {
+        match self {
+            NodeType::File => {""},
+            NodeType::Directory => {"D"},
+            NodeType::Symlink => {"L"},
+            NodeType::Other => {"-"},
+            NodeType::Error => {"ERR"},
+        }
+    }
 }
 
 impl Default for NodeType {

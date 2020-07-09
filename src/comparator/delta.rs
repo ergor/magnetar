@@ -167,21 +167,12 @@ impl<'a> Delta<'a> {
         unreachable!("both vfsnodes were None");
     }
 
-    pub fn file_type(&self) -> &str {
-        fn to_symbol(node_type: &NodeType) -> &str {
-            match node_type {
-                NodeType::File => {""},
-                NodeType::Directory => {"D"},
-                NodeType::Symlink => {"L"},
-                NodeType::Other => {"O"},
-                NodeType::Error => {"ERR"},
-            }
-        }
+    pub fn file_type(&self) -> &NodeType {
         match self.delta_type {
-            DeltaType::Creation => { to_symbol(&self.b.as_ref().unwrap().fs_node.node_type) },
-            DeltaType::Deletion => { to_symbol(&self.a.as_ref().unwrap().fs_node.node_type) },
-            DeltaType::Modification(_) => { to_symbol(&self.b.as_ref().unwrap().fs_node.node_type) },
-            DeltaType::NoChange => { to_symbol(&self.a.as_ref().unwrap().fs_node.node_type) },
+            DeltaType::Creation => { &self.b.as_ref().unwrap().fs_node.node_type },
+            DeltaType::Deletion => { &self.a.as_ref().unwrap().fs_node.node_type },
+            DeltaType::Modification(_) => { &self.b.as_ref().unwrap().fs_node.node_type },
+            DeltaType::NoChange => { &self.a.as_ref().unwrap().fs_node.node_type },
         }
     }
 
