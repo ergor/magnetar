@@ -1,5 +1,4 @@
 use std::fmt;
-use rusqlite::types::{FromSqlResult, ValueRef};
 use std::fmt::Display;
 use std::path::Path;
 use crate::apperror::AppError;
@@ -93,7 +92,7 @@ impl Display for NodeType {
 }
 
 impl rusqlite::types::FromSql for NodeType {
-    fn column_result(value: ValueRef<'_>) -> FromSqlResult<NodeType> {
+    fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<NodeType> {
         let value = value.as_i64()?;
         let node_type_opt = NodeType::from(value as u32);
         match node_type_opt {
@@ -109,7 +108,7 @@ impl FsNode {
         FsNode::default()
     }
 
-    pub fn insert (&self, conn: &rusqlite::Connection) -> rusqlite::Result<()> {
+    pub fn insert (&self, conn: &rusqlite::Transaction<'_>) -> rusqlite::Result<()> {
         conn.execute(
             "INSERT INTO fs_node ( \
                     node_type, \

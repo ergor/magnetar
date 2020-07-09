@@ -5,10 +5,14 @@ pub fn start(db_path: &str, directories: clap::Values<'_>) -> crate::Convertible
 
     let start_time = Instant::now();
     log::debug!("index_once.start: begin...");
+
     log::debug!("'{}': opening connection to database...", db_path);
-    let conn = rusqlite::Connection::open(db_path)?;
+    let mut conn = rusqlite::Connection::open(db_path)?;
     create_tables::execute(&conn)?;
     log::debug!("'{}': open OK; tables initialized", db_path);
+
+    log::debug!("'{}': beginning transaction...", db_path);
+    let transaction = conn.transaction()?;
 
     let directories: Vec<String> = directories.map(|v| v.to_string()).collect();
     log::debug!("directories selected for indexing: '{}'", directories.join(", "));
@@ -18,8 +22,8 @@ pub fn start(db_path: &str, directories: clap::Values<'_>) -> crate::Convertible
                 log::debug!("'{}': indexing done, inserting into database...", dir);
                 for fs_node in fs_nodes {
                     log::trace!("INSERT {:?}", fs_node);
-                    if let Err(e) = fs_node.insert(&conn) {
-                        log::error!("could not insert fsnode entry into db: {}", e);
+                    if let Err(e) = fs_node.insert(&transaction) {
+                        log::error!("could not insert fsnode entry into db: {}. {:?}", e, fs_node);
                     }
                 }
                 log::debug!("'{}': db insertions OK.", dir);
@@ -29,6 +33,8 @@ pub fn start(db_path: &str, directories: clap::Values<'_>) -> crate::Convertible
             },
         };
     }
+
+    transaction.commit()?;
 
     conn.close()?;
     log::debug!("{}: closed database connection.", db_path);
