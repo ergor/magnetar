@@ -1,4 +1,4 @@
-use crate::comparator::delta::Delta;
+use crate::comparator::delta::{Delta, DeltaType};
 use std::io::Write;
 use std::io;
 use std::path::PathBuf;
@@ -22,13 +22,20 @@ pub struct ReportSummary {
 }
 
 /// Prints the generated report to the given stream.
-pub fn write(mut out_stream: impl Write, deltas: Vec<Delta<'_>>, summary: ReportSummary) -> io::Result<()> {
+pub fn write(mut out_stream: impl Write, deltas: Vec<Delta<'_>>, keep_unchanged: bool, summary: ReportSummary) -> io::Result<()> {
     let template = include_str!("report.html");
 
     let output_html = summary.into_html(template);
 
+    let deltas = deltas
+        .into_iter()
+        .filter(|delta| keep_unchanged || delta.delta_type() != DeltaType::NoChange)
+        .collect();
+
     let rows = make_rows(&deltas);
-    let output_html = output_html.replace("${rows}", rows.as_str());
+    let mut output_html = output_html.replace("${rows}", rows.as_str());
+    output_html = output_html.replace("${keep-unchanged}", if keep_unchanged {""} else {"hidden"});
+
     let bytes_written = out_stream.write(output_html.as_bytes())?;
 
     log::debug!("wrote {} bytes to output stream.", bytes_written);

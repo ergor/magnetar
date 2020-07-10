@@ -78,7 +78,9 @@ pub fn run(args: &clap::ArgMatches<'_>) -> ConvertibleResult<()> {
         Some(_dir) => { unimplemented!("writing to file not implemented") },
     };
 
-    report::write(output_stream, deltas, summary)?;
+    let keep_unchanged = args.is_present("keep-unchanged");
+
+    report::write(output_stream, deltas, keep_unchanged, summary)?;
 
     Ok(())
 }
@@ -178,4 +180,9 @@ pub fn cmdline<'a>() -> clap::App<'a, 'a> {
             .conflicts_with_all(&["mode", "mode-all"])
             .takes_value(false)
             .help("Enable a small subset of flags for mode. Equivalent to --mode csm"))
+        .arg(clap::Arg::with_name("keep-unchanged")
+            .long("keep-unchanged")
+            .short("u")
+            .takes_value(false)
+            .help("Write unchanged files to report. Caution: this can lead to large report files."))
 }

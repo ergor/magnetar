@@ -167,17 +167,25 @@
 <div id="filter-section">
     <h4>Delta type filters</h4>
 
-    <input checked type="checkbox" id="cb_no-change" onchange="onchangeCbNoChange(this)">
-    <label for="cb_no-change">No change</label>
+    <label ${keep-unchanged}>
+        <input checked type="checkbox" id="cb_no-change" onchange="onchangeCbNoChange(this)">
+        No change
+    </label>
 
-    <input checked type="checkbox" id="cb_modified" onchange="onchangeCbModification(this)">
-    <label for="cb_modified">Modification</label>
+    <label>
+        <input checked type="checkbox" id="cb_modified" onchange="onchangeCbModification(this)">
+        Modification
+    </label>
 
-    <input checked type="checkbox" id="cb_creation" onchange="onchangeCbCreation(this)">
-    <label for="cb_creation">Creation</label>
+    <label>
+        <input checked type="checkbox" id="cb_creation" onchange="onchangeCbCreation(this)">
+        Creation
+    </label>
 
-    <input checked type="checkbox" id="cb_deletion" onchange="onchangeCbDeletion(this)">
-    <label for="cb_deletion">Deletion</label>
+    <label>
+        <input checked type="checkbox" id="cb_deletion" onchange="onchangeCbDeletion(this)">
+        Deletion
+    </label>
 </div>
 
 <div id="heading-section" class="fit-content monospace">
