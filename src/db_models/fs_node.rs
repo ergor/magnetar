@@ -70,6 +70,13 @@ impl NodeType {
             NodeType::Error => {"ERR"},
         }
     }
+
+    pub fn is_dir(&self) -> bool {
+        match self {
+            NodeType::Directory => true,
+            _ => false,
+        }
+    }
 }
 
 impl Default for NodeType {

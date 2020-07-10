@@ -79,8 +79,9 @@ pub fn run(args: &clap::ArgMatches<'_>) -> ConvertibleResult<()> {
     };
 
     let keep_unchanged = args.is_present("keep-unchanged");
+    let collapse = args.is_present("collapse");
 
-    report::write(output_stream, deltas, keep_unchanged, summary)?;
+    report::write(output_stream, deltas, keep_unchanged, collapse, summary)?;
 
     Ok(())
 }
@@ -180,6 +181,13 @@ pub fn cmdline<'a>() -> clap::App<'a, 'a> {
             .conflicts_with_all(&["mode", "mode-all"])
             .takes_value(false)
             .help("Enable a small subset of flags for mode. Equivalent to --mode csm"))
+        .arg(clap::Arg::with_name("collapse")
+            .long("collapse")
+            .short("c")
+            .takes_value(false)
+            .help("If a directory is created or deleted, this option will collapse\n\
+                   those directories and only write the parent directory to the report.\n\
+                   Use this option if the report file becomes too large otherwise."))
         .arg(clap::Arg::with_name("keep-unchanged")
             .long("keep-unchanged")
             .short("u")

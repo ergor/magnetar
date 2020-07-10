@@ -30,6 +30,20 @@ impl DeltaType {
             DeltaType::NoChange => "no-change",
         }
     }
+
+    pub fn is_created_or_deleted(&self) -> bool {
+        match self {
+            DeltaType::Creation | DeltaType::Deletion => true,
+            _ => false
+        }
+    }
+
+    pub fn is_unchanged(&self) -> bool {
+        match self {
+            DeltaType::NoChange => true,
+            _ => false,
+        }
+    }
 }
 
 /// Indicates what field in the FsNodes was changed.
@@ -122,11 +136,11 @@ impl<'a> Delta<'a> {
             a,
             b,
         };
-        comparison.delta_type = comparison.delta_type();
+        comparison.delta_type = comparison.calculate_delta_type();
         return comparison;
     }
 
-    pub fn delta_type(&self) -> DeltaType {
+    fn calculate_delta_type(&self) -> DeltaType {
         if self.a.is_some() && self.b.is_none() {
             return DeltaType::Creation;
         }
@@ -143,6 +157,10 @@ impl<'a> Delta<'a> {
                 };
         }
         unreachable!("comparison: delta_type exhausted");
+    }
+
+    pub fn delta_type(&self) -> &DeltaType {
+        &self.delta_type
     }
 
     pub fn root_path_str(&self) -> &str {
