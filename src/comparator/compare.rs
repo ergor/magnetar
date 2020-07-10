@@ -53,15 +53,15 @@ pub fn compare<'a>(mut pool_a: VFsNodeMap<'a>, mut pool_b: VFsNodeMap<'a>, attr_
 
 
     let mut deletions: DeltaMap<'_> = BTreeMap::from_iter(
-        v_paths_a_set.difference(&v_paths_b_set)
-        .map(|v_path| (v_path.clone(), Delta::new(Some(pool_a.remove(v_path).unwrap()), None, attr_types)))
+        v_paths_b_set.difference(&v_paths_a_set)
+        .map(|v_path| (v_path.clone(), Delta::new(None, Some(pool_b.remove(v_path).unwrap()), attr_types)))
     );
 
     log::debug!("compare: found {} deletions", deletions.len());
 
     let mut creations: DeltaMap<'_> = BTreeMap::from_iter(
-        v_paths_b_set.difference(&v_paths_a_set)
-        .map(|v_path| (v_path.clone(), Delta::new(None, Some(pool_b.remove(v_path).unwrap()), attr_types)))
+        v_paths_a_set.difference(&v_paths_b_set)
+        .map(|v_path| (v_path.clone(), Delta::new(Some(pool_a.remove(v_path).unwrap()), None, attr_types)))
     );
 
     log::debug!("compare: found {} creations", creations.len());

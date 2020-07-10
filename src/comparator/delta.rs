@@ -72,7 +72,6 @@ impl Attribute {
         set.insert(Attribute::User);
         set.insert(Attribute::Group);
         set.insert(Attribute::Permissions);
-        set.insert(Attribute::CreationDate);
         set.insert(Attribute::ModifiedDate);
         set
     }
@@ -128,10 +127,10 @@ impl<'a> Delta<'a> {
     }
 
     pub fn delta_type(&self) -> DeltaType {
-        if self.a.is_none() && self.b.is_some() {
+        if self.a.is_some() && self.b.is_none() {
             return DeltaType::Creation;
         }
-        else if self.a.is_some() && self.b.is_none() {
+        else if self.a.is_none() && self.b.is_some() {
             return DeltaType::Deletion;
         }
         else if let (Some(_), Some(_)) = (&self.a, &self.b) {
@@ -147,11 +146,11 @@ impl<'a> Delta<'a> {
     }
 
     pub fn root_path_str(&self) -> &str {
-        // order is important, we want b first, because b represents current state.
-        if let Some(vnode) = &self.b {
+        // order is important, we want a first, because a represents source state.
+        if let Some(vnode) = &self.a {
             return vnode.root.as_str();
         }
-        if let Some(vnode) = &self.a {
+        if let Some(vnode) = &self.b {
             return vnode.root.as_str();
         }
         unreachable!("both vfsnodes were None");
@@ -169,9 +168,9 @@ impl<'a> Delta<'a> {
 
     pub fn file_type(&self) -> &NodeType {
         match self.delta_type {
-            DeltaType::Creation => { &self.b.as_ref().unwrap().fs_node.node_type },
-            DeltaType::Deletion => { &self.a.as_ref().unwrap().fs_node.node_type },
-            DeltaType::Modification(_) => { &self.b.as_ref().unwrap().fs_node.node_type },
+            DeltaType::Creation => { &self.a.as_ref().unwrap().fs_node.node_type },
+            DeltaType::Deletion => { &self.b.as_ref().unwrap().fs_node.node_type },
+            DeltaType::Modification(_) => { &self.a.as_ref().unwrap().fs_node.node_type },
             DeltaType::NoChange => { &self.a.as_ref().unwrap().fs_node.node_type },
         }
     }
@@ -179,8 +178,8 @@ impl<'a> Delta<'a> {
     pub fn delta_info(&self) -> String {
         match &self.delta_type {
             DeltaType::NoChange => { String::new() },
-            DeltaType::Creation => { format!("[created]") },
-            DeltaType::Deletion => { format!("[deleted]") },
+            DeltaType::Creation => { format!("[creation]") },
+            DeltaType::Deletion => { format!("[deletion]") },
             DeltaType::Modification(changes) => {
                 String::from(changes.join(", "))
             },
@@ -195,43 +194,43 @@ impl<'a> Delta<'a> {
 
         // TODO: this is kinda ugly
         if self.delta_trigger_attrs.contains(&Attribute::Size) && aaa.size != bbb.size {
-            deltas.push(format!("size: {} -> {}", aaa.size, bbb.size));
+            deltas.push(format!("size: {} -> {}", bbb.size, aaa.size));
         }
         if self.delta_trigger_attrs.contains(&Attribute::NodeType) && aaa.node_type != bbb.node_type {
-            deltas.push(format!("type: {} -> {}", aaa.node_type, bbb.node_type));
+            deltas.push(format!("type: {} -> {}", bbb.node_type, aaa.node_type));
         }
         if self.delta_trigger_attrs.contains(&Attribute::User) && aaa.uid != bbb.uid {
-            deltas.push(format!("uid: {} -> {}", aaa.uid, bbb.uid));
+            deltas.push(format!("uid: {} -> {}", bbb.uid, aaa.uid));
         }
         if self.delta_trigger_attrs.contains(&Attribute::Group) && aaa.gid != bbb.gid {
-            deltas.push(format!("gid: {} -> {}", aaa.gid, bbb.gid));
+            deltas.push(format!("gid: {} -> {}", bbb.gid, aaa.gid));
         }
         if self.delta_trigger_attrs.contains(&Attribute::Permissions) && aaa.permissions != bbb.permissions {
             let aaa = Permission::from_val(aaa.permissions);
             let bbb = Permission::from_val(bbb.permissions);
-            deltas.push(format!("perms: {} -> {}", aaa.as_str(), bbb.as_str()));
+            deltas.push(format!("perms: {} -> {}", bbb.as_str(), aaa.as_str()));
         }
         if self.delta_trigger_attrs.contains(&Attribute::CreationDate) && aaa.creation_date != bbb.creation_date {
             let time_a = chrono::Local.timestamp(aaa.creation_date, 0);
             let time_b = chrono::Local.timestamp(bbb.creation_date, 0);
-            deltas.push(format!("date created: {} -> {}", time_a.to_string(), time_b.to_string()));
+            deltas.push(format!("date created: {} -> {}", time_b.to_string(), time_a.to_string()));
         }
         if self.delta_trigger_attrs.contains(&Attribute::ModifiedDate) && aaa.modified_date != bbb.modified_date {
             let time_a = chrono::Local.timestamp(aaa.modified_date, 0);
             let time_b = chrono::Local.timestamp(bbb.modified_date, 0);
-            deltas.push(format!("date modified: {} -> {}", time_a.to_string(), time_b.to_string()));
+            deltas.push(format!("date modified: {} -> {}", time_b.to_string(), time_a.to_string()));
         }
         if self.delta_trigger_attrs.contains(&Attribute::LinksTo) && aaa.links_to != bbb.links_to {
-            deltas.push(format!("symlink to: {} -> {}", aaa.links_to, bbb.links_to));
+            deltas.push(format!("symlink to: {} -> {}", bbb.links_to, aaa.links_to));
         }
         if self.delta_trigger_attrs.contains(&Attribute::Checksum) && aaa.sha1_checksum != bbb.sha1_checksum {
-            deltas.push(format!("sha1: {} -> {}", aaa.sha1_checksum, bbb.sha1_checksum));
+            deltas.push(format!("sha1: {} -> {}", bbb.sha1_checksum, aaa.sha1_checksum));
         }
         if self.delta_trigger_attrs.contains(&Attribute::Inode) && aaa.inode != bbb.inode {
-            deltas.push(format!("inode: {} -> {}", aaa.inode, bbb.inode));
+            deltas.push(format!("inode: {} -> {}", bbb.inode, aaa.inode));
         }
         if self.delta_trigger_attrs.contains(&Attribute::NLinks) && aaa.nlinks != bbb.nlinks {
-            deltas.push(format!("hardlink count: {} -> {}", aaa.nlinks, bbb.nlinks));
+            deltas.push(format!("hardlink count: {} -> {}", bbb.nlinks, aaa.nlinks));
         }
 
         deltas

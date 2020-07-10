@@ -10,7 +10,7 @@ use crate::apperror::AppError;
 use crate::db_models::fs_node::FsNode;
 use crate::errorwrapper::ErrorWrapper;
 use std::collections::HashSet;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::io;
 use crate::comparator::delta::Attribute;
 
@@ -163,7 +163,7 @@ pub fn cmdline<'a>() -> clap::App<'a, 'a> {
             .value_name("MODE")
             .next_line_help(true)
             .help("What attributes should count towards being a change.\n\
-                  If not specified, defaults to 'csugpcm'.\n\
+                  If not specified, defaults to 'csugpm'.\n\
                   node(t)ype, (c)hecksum, (s)ize, (u)ser, (g)roup, (p)ermissions,\n\
                   (b)irthdate, (m)odifieddate, (l)inksto, (i)node, (n)links"))
         .arg(clap::Arg::with_name("mode-all")
