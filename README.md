@@ -64,8 +64,8 @@ To compare directories, we load the databases we want to compare:
 
 ```
 magnetar cmp -u \                        # the -u option tells magnetar to include files that are unchanged as well.
--a /tmp/magnetar-1606312134.db \         # Tells magnetar what database it should regard as source.
--b /tmp/magnetar-1606312134.db \         # Tells magnetar what database it should regard as destination.
+-a /tmp/magnetar-1606312134.db \         # Tells magnetar what index it should regard as source.
+-b /tmp/magnetar-1606312134.db \         # Tells magnetar what index it should regard as destination.
 --root-a /tmp/magnetar-demo/parent-a \   # We add /tmp/magnetar-demo/parent-a to the pool for our source.
 --root-b /tmp/magnetar-demo/parent-b \   # We add /tmp/magnetar-demo/parent-b to the pool for our destination.
 --root-b /tmp/magnetar-demo/parent-c \   # We _also_ add /tmp/magnetar-demo/parent-c to the pool for our destination.
