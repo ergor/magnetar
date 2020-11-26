@@ -7,6 +7,7 @@ use crate::consts;
 use std::env;
 use std::process::exit;
 use std::time::SystemTime;
+use std::path::PathBuf;
 
 pub fn run(args: &clap::ArgMatches<'_>) -> crate::ConvertibleResult<()> {
     let directories = args.values_of("directories").unwrap();
@@ -34,9 +35,10 @@ pub fn run(args: &clap::ArgMatches<'_>) -> crate::ConvertibleResult<()> {
 
     let db_filename = format!("{}-{}.db", consts::PROGRAM_NAME, time_now.as_secs());
 
-    let mut tmp_dir = env::temp_dir();
-    tmp_dir.push(db_filename.as_str());
-    let db_path = tmp_dir.to_str()
+    let mut out_dir = PathBuf::from(args.value_of("output-dir").unwrap_or("./"));
+    out_dir.push(db_filename.as_str());
+
+    let db_path = out_dir.to_str()
         .expect("could not create temporary database (illegal filename)");
 
     if args.is_present("listen") {
@@ -73,8 +75,8 @@ pub fn cmdline<'a>() -> clap::App<'a, 'a> {
         .arg(clap::Arg::with_name("output-dir")
             .short("o")
             .long("output-dir")
-            .value_name("OUTPUT DIR")
-            .help("Store database file in OUTPUT DIR"))
+            .value_name("OUTPUT-DIR")
+            .help("Store database file in OUTPUT-DIR (default: working directory)"))
         .arg(clap::Arg::with_name("directories")
             .value_name("DIRECTORIES")
             .help("The directories to index")

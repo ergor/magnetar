@@ -1,6 +1,6 @@
 [package]
 name = "magnetar"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Erol Gorancic"]
 edition = "2018"
 
